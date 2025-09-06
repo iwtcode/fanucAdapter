@@ -109,70 +109,64 @@ func Disconnect(handle uint16) {
 
 // GetAllData собирает всю доступную информацию со станка и преобразует ее в унифицированную модель для Kafka.
 func GetAllData(handle uint16, sessionID, endpoint string) (*models.MachineDataKafka, error) {
-	// Системная информация в текущей модели не используется, но получаем ее для полноты
-	_, _ = readSystemInfo(handle)
-	progInfo, _ := readProgram(handle)
 	statusInfo, err := readMachineState(handle)
 	if err != nil {
 		return nil, fmt.Errorf("критическая ошибка: не удалось прочитать состояние станка: %w", err)
 	}
 
 	// --- Начало логики трансформации ---
-	unavailable := "UNAVAILABLE"
 
-	var currentProgram *models.CurrentProgramInfoKafka
+	// Создаем структуру только с обязательными полями
+	machineData := &models.MachineDataKafka{
+		MachineId:          endpoint,
+		Timestamp:          time.Now().Format(time.RFC3339),
+		MachineState:       statusInfo.MachineState,
+		ProgramMode:        statusInfo.ProgramMode,
+		TmMode:             statusInfo.TmMode,
+		AxisMovementStatus: statusInfo.AxisMovementStatus,
+		MstbStatus:         statusInfo.MstbStatus,
+		EmergencyStatus:    statusInfo.EmergencyStatus,
+		AlarmStatus:        statusInfo.AlarmStatus,
+		EditStatus:         statusInfo.EditStatus,
+	}
+
+	// Условно добавляем информацию о программе
+	progInfo, _ := readProgram(handle)
 	if progInfo != nil && (progInfo.Name != "" || progInfo.Number != 0) {
-		currentProgram = &models.CurrentProgramInfoKafka{
+		machineData.CurrentProgram = &models.CurrentProgramInfoKafka{
 			Program:        progInfo.Name,
 			ProgramComment: fmt.Sprintf("O%d", progInfo.Number),
 		}
 	}
 
-	alarms := make([]map[string]interface{}, 0)
+	// Условно добавляем информацию об алармах
 	// Статус "Others" или "UNKNOWN" означает отсутствие активных алармов.
 	hasAlarms := !(statusInfo.AlarmStatus == "Others" || statusInfo.AlarmStatus == "UNKNOWN" || statusInfo.AlarmStatus == "")
-
 	if hasAlarms {
 		alarm := make(map[string]interface{})
 		alarm["level"] = "FAULT" // FOCAS не разделяет ошибки и предупреждения, используем общий уровень
 		alarm["message"] = statusInfo.AlarmStatus
-		alarms = append(alarms, alarm)
+		machineData.Alarms = append(machineData.Alarms, alarm)
+		machineData.HasAlarms = true
+		machineData.WarningStatus = "ACTIVE"
+	}
+
+	// Условно добавляем флаги
+	if statusInfo.EmergencyStatus == "EMerGency" {
+		machineData.IsInEmergency = true
 	}
 
 	isManualMode := statusInfo.ProgramMode == "HaNDle" || statusInfo.ProgramMode == "JOG" || statusInfo.ProgramMode == "Teach in JOG" || statusInfo.ProgramMode == "Teach in HaNDle"
-
-	machineData := &models.MachineDataKafka{
-		MachineId:           endpoint,
-		Id:                  "", // Поле 'id' пока не используется, как и запрошено
-		Timestamp:           time.Now().Format(time.RFC3339),
-		IsEnabled:           true, // Если соединение есть, считаем, что станок включен
-		IsInEmergency:       statusInfo.EmergencyStatus == "EMerGency",
-		MachineState:        statusInfo.MachineState,
-		ProgramMode:         statusInfo.ProgramMode,
-		TmMode:              statusInfo.TmMode,
-		HandleRetraceStatus: unavailable,
-		AxisMovementStatus:  statusInfo.AxisMovementStatus,
-		MstbStatus:          statusInfo.MstbStatus,
-		EmergencyStatus:     statusInfo.EmergencyStatus,
-		AlarmStatus:         statusInfo.AlarmStatus,
-		EditStatus:          statusInfo.EditStatus,
-		ManualMode:          isManualMode,
-		WriteStatus:         unavailable,
-		LabelSkipStatus:     unavailable,
-		WarningStatus:       "NORMAL",
-		BatteryStatus:       statusInfo.AlarmStatus == "BATtery Low",
-		ActiveToolNumber:    unavailable,
-		ToolOffsetNumber:    unavailable,
-		Alarms:              alarms,
-		HasAlarms:           hasAlarms,
-		PartsCount:          make(map[string]string),
-		AccumulatedTime:     make(map[string]string),
-		CurrentProgram:      currentProgram,
+	if isManualMode {
+		machineData.ManualMode = true
 	}
 
-	if hasAlarms {
-		machineData.WarningStatus = "ACTIVE"
+	if statusInfo.AlarmStatus == "BATtery Low" {
+		machineData.BatteryStatus = true
 	}
+
+	// Поле IsEnabled можно оставить как есть, так как если мы получаем данные, станок доступен
+	machineData.IsEnabled = true
 
 	return machineData, nil
 }

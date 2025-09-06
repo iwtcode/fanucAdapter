@@ -47,29 +47,29 @@ type CurrentProgramInfoKafka struct {
 // MachineDataKafka - это агрегированная структура для отправки в Kafka, совместимая с MTConnect.
 type MachineDataKafka struct {
 	MachineId           string                   `json:"machine_id"`
-	Id                  string                   `json:"id"`
+	Id                  string                   `json:"id,omitempty"`
 	Timestamp           string                   `json:"timestamp"`
-	IsEnabled           interface{}              `json:"is_enabled"`
-	IsInEmergency       interface{}              `json:"is_in_emergency"`
+	IsEnabled           interface{}              `json:"is_enabled,omitempty"`
+	IsInEmergency       interface{}              `json:"is_in_emergency,omitempty"`
 	MachineState        string                   `json:"machine_state"`
 	ProgramMode         string                   `json:"program_mode"`
 	TmMode              string                   `json:"tm_mode"`
-	HandleRetraceStatus interface{}              `json:"handle_retrace_status"`
+	HandleRetraceStatus interface{}              `json:"handle_retrace_status,omitempty"`
 	AxisMovementStatus  interface{}              `json:"axis_movement_status"`
 	MstbStatus          string                   `json:"mstb_status"`
 	EmergencyStatus     string                   `json:"emergency_status"`
 	AlarmStatus         string                   `json:"alarm_status"`
 	EditStatus          string                   `json:"edit_status"`
-	ManualMode          interface{}              `json:"manual_mode"`
-	WriteStatus         string                   `json:"write_status"`
-	LabelSkipStatus     interface{}              `json:"label_skip_status"`
-	WarningStatus       string                   `json:"warning_status"`
-	BatteryStatus       interface{}              `json:"battery_status"`
-	ActiveToolNumber    string                   `json:"active_tool_number"`
-	ToolOffsetNumber    string                   `json:"tool_offset_number"`
-	Alarms              []map[string]interface{} `json:"alarms"`
-	HasAlarms           interface{}              `json:"has_alarms"`
-	PartsCount          map[string]string        `json:"parts_count"`
-	AccumulatedTime     map[string]string        `json:"accumulated_time"`
+	ManualMode          interface{}              `json:"manual_mode,omitempty"`
+	WriteStatus         string                   `json:"write_status,omitempty"`
+	LabelSkipStatus     interface{}              `json:"label_skip_status,omitempty"`
+	WarningStatus       string                   `json:"warning_status,omitempty"`
+	BatteryStatus       interface{}              `json:"battery_status,omitempty"`
+	ActiveToolNumber    string                   `json:"active_tool_number,omitempty"`
+	ToolOffsetNumber    string                   `json:"tool_offset_number,omitempty"`
+	Alarms              []map[string]interface{} `json:"alarms,omitempty"`
+	HasAlarms           interface{}              `json:"has_alarms,omitempty"`
+	PartsCount          map[string]string        `json:"parts_count,omitempty"`
+	AccumulatedTime     map[string]string        `json:"accumulated_time,omitempty"`
 	CurrentProgram      *CurrentProgramInfoKafka `json:"current_program,omitempty"`
 }

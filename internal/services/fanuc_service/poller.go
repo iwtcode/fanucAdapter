@@ -107,19 +107,8 @@ func (pm *PollingManager) startPollingForMachineUnsafe(sessionID, endpoint strin
 		host, portStr, _ := net.SplitHostPort(endpoint)
 		port, _ := strconv.Atoi(portStr)
 
-		// Постоянное переподключение внутри горутины
-		handle, err := focas.Connect(host, uint16(port), 5000)
-		if err != nil {
-			pm.logger.Error("Failed to connect for polling", "sessionID", sessionID, "error", err)
-		} else {
-			pm.logger.Info("Successfully connected for polling", "sessionID", sessionID, "handle", handle)
-		}
-
 		defer func() {
-			if handle != 0 {
-				focas.Disconnect(handle)
-				pm.logger.Info("Disconnected from polling connection", "sessionID", sessionID)
-			}
+			pm.logger.Info("Polling goroutine stopped", "sessionID", sessionID)
 		}()
 
 		for {
@@ -127,21 +116,25 @@ func (pm *PollingManager) startPollingForMachineUnsafe(sessionID, endpoint strin
 			case <-done:
 				return
 			case <-ticker.C:
-				if handle == 0 {
-					handle, err = focas.Connect(host, uint16(port), 5000)
-					if err != nil {
-						pm.logger.Error("Failed to reconnect for polling", "sessionID", sessionID, "error", err)
-						continue // Пропускаем этот тик
-					}
-					pm.logger.Info("Reconnected for polling", "sessionID", sessionID, "handle", handle)
+				// Шаг 1: Устанавливаем соединение в начале каждой итерации
+				handle, err := focas.Connect(host, uint16(port), 5000)
+				if err != nil {
+					pm.logger.Error("Failed to connect for polling tick", "sessionID", sessionID, "error", err)
+					continue // Пропускаем эту итерацию, попробуем на следующей
 				}
+				pm.logger.Debug("Successfully connected for polling tick", "sessionID", sessionID, "handle", handle)
 
+				// Шаг 2: Получаем данные
 				machineData, err := focas.GetAllData(handle, sessionID, endpoint)
+
+				// Шаг 3: Всегда разрываем соединение, независимо от результата
+				focas.Disconnect(handle)
+				pm.logger.Debug("Disconnected from polling connection", "sessionID", sessionID)
+
+				// Шаг 4: Обрабатываем результат после разрыва соединения
 				if err != nil {
 					pm.logger.Error("Error getting machine data", "sessionID", sessionID, "error", err)
-					focas.Disconnect(handle) // Разрываем соединение при ошибке
-					handle = 0               // Сбрасываем хендл для переподключения
-					continue
+					continue // Пропускаем эту итерацию
 				}
 
 				jsonData, err := json.Marshal(machineData)
