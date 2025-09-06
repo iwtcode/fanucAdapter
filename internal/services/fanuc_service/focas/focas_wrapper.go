@@ -107,25 +107,74 @@ func Disconnect(handle uint16) {
 	C.go_cnc_freelibhndl(C.ushort(handle))
 }
 
-// GetAllData собирает всю доступную информацию со станка.
-func GetAllData(handle uint16, sessionID, endpoint string) (*models.FullMachineData, error) {
-	sysInfo, _ := readSystemInfo(handle)
+// GetAllData собирает всю доступную информацию со станка и преобразует ее в унифицированную модель для Kafka.
+func GetAllData(handle uint16, sessionID, endpoint string) (*models.MachineDataKafka, error) {
+	// Системная информация в текущей модели не используется, но получаем ее для полноты
+	_, _ = readSystemInfo(handle)
 	progInfo, _ := readProgram(handle)
 	statusInfo, err := readMachineState(handle)
 	if err != nil {
 		return nil, fmt.Errorf("критическая ошибка: не удалось прочитать состояние станка: %w", err)
 	}
 
-	fullData := &models.FullMachineData{
-		SessionID:   sessionID,
-		Endpoint:    endpoint,
-		Timestamp:   time.Now(),
-		SystemInfo:  sysInfo,
-		ProgramInfo: progInfo,
-		StatusInfo:  statusInfo,
+	// --- Начало логики трансформации ---
+	unavailable := "UNAVAILABLE"
+
+	var currentProgram *models.CurrentProgramInfoKafka
+	if progInfo != nil && (progInfo.Name != "" || progInfo.Number != 0) {
+		currentProgram = &models.CurrentProgramInfoKafka{
+			Program:        progInfo.Name,
+			ProgramComment: fmt.Sprintf("O%d", progInfo.Number),
+		}
 	}
 
-	return fullData, nil
+	alarms := make([]map[string]interface{}, 0)
+	// Статус "Others" или "UNKNOWN" означает отсутствие активных алармов.
+	hasAlarms := !(statusInfo.AlarmStatus == "Others" || statusInfo.AlarmStatus == "UNKNOWN" || statusInfo.AlarmStatus == "")
+
+	if hasAlarms {
+		alarm := make(map[string]interface{})
+		alarm["level"] = "FAULT" // FOCAS не разделяет ошибки и предупреждения, используем общий уровень
+		alarm["message"] = statusInfo.AlarmStatus
+		alarms = append(alarms, alarm)
+	}
+
+	isManualMode := statusInfo.ProgramMode == "HaNDle" || statusInfo.ProgramMode == "JOG" || statusInfo.ProgramMode == "Teach in JOG" || statusInfo.ProgramMode == "Teach in HaNDle"
+
+	machineData := &models.MachineDataKafka{
+		MachineId:           endpoint,
+		Id:                  "", // Поле 'id' пока не используется, как и запрошено
+		Timestamp:           time.Now().Format(time.RFC3339),
+		IsEnabled:           true, // Если соединение есть, считаем, что станок включен
+		IsInEmergency:       statusInfo.EmergencyStatus == "EMerGency",
+		MachineState:        statusInfo.MachineState,
+		ProgramMode:         statusInfo.ProgramMode,
+		TmMode:              statusInfo.TmMode,
+		HandleRetraceStatus: unavailable,
+		AxisMovementStatus:  statusInfo.AxisMovementStatus,
+		MstbStatus:          statusInfo.MstbStatus,
+		EmergencyStatus:     statusInfo.EmergencyStatus,
+		AlarmStatus:         statusInfo.AlarmStatus,
+		EditStatus:          statusInfo.EditStatus,
+		ManualMode:          isManualMode,
+		WriteStatus:         unavailable,
+		LabelSkipStatus:     unavailable,
+		WarningStatus:       "NORMAL",
+		BatteryStatus:       statusInfo.AlarmStatus == "BATtery Low",
+		ActiveToolNumber:    unavailable,
+		ToolOffsetNumber:    unavailable,
+		Alarms:              alarms,
+		HasAlarms:           hasAlarms,
+		PartsCount:          make(map[string]string),
+		AccumulatedTime:     make(map[string]string),
+		CurrentProgram:      currentProgram,
+	}
+
+	if hasAlarms {
+		machineData.WarningStatus = "ACTIVE"
+	}
+
+	return machineData, nil
 }
 
 func trimNull(s string) string {
