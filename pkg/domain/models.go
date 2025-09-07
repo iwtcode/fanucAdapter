@@ -8,10 +8,18 @@ type ProgramInfo struct {
 
 // SystemInfo содержит системную информацию о станке.
 type SystemInfo struct {
-	Manufacturer string
-	Model        string
-	Series       string
-	Version      string
+	Manufacturer   string
+	Model          string
+	Series         string
+	Version        string
+	MaxAxis        int16
+	ControlledAxes int16
+}
+
+// AxisInfo содержит информацию об оси.
+type AxisInfo struct {
+	Name     string
+	Position int64
 }
 
 // UnifiedMachineData содержит полное унифицированное состояние станка.

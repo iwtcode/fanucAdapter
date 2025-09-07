@@ -9,5 +9,7 @@ short go_cnc_freelibhndl(unsigned short h);
 short go_cnc_exeprgname(unsigned short h, char* name_out, int name_cap, long* onum_out);
 short go_cnc_statinfo(unsigned short h, ODBST* stat_out);
 short go_cnc_sysinfo(unsigned short h, ODBSYS* sys_info_out);
+short go_cnc_rdaxisname(unsigned short h, short axis, ODBAXISNAME* axisname_out);
+short go_cnc_absolute(unsigned short h, short length, ODBAXIS* axis_out);
 
 #endif // C_HELPERS_H

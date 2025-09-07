@@ -36,6 +36,26 @@ func main() {
 	fmt.Printf("Модель:        %s\n", systemInfo.Model)
 	fmt.Printf("Серия:         %s\n", systemInfo.Series)
 	fmt.Printf("Версия:        %s\n", systemInfo.Version)
+	fmt.Printf("Кол-во осей:   %d\n", systemInfo.ControlledAxes)
+
+	// Обновленный блок: Чтение данных об осях с позициями
+	fmt.Println("\n--- Информация об осях ---")
+	axisInfos, err := focas.ReadAxisData(h, systemInfo.ControlledAxes, systemInfo.MaxAxis)
+	if err != nil {
+		log.Fatalf("Не удалось прочитать информацию об осях: %v", err)
+	}
+	fmt.Println(`"axis_infos": [`)
+	for i, axis := range axisInfos {
+		fmt.Println("    {")
+		fmt.Printf("        \"name\": \"%s\",\n", axis.Name)
+		fmt.Printf("        \"position\": %d\n", axis.Position)
+		if i < len(axisInfos)-1 {
+			fmt.Println("    },")
+		} else {
+			fmt.Println("    }")
+		}
+	}
+	fmt.Println("]")
 
 	// 5) Чтение информации о программе
 	fmt.Println("\n--- Информация о программе ---")

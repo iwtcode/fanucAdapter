@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unsafe"
 
@@ -86,15 +87,70 @@ func ReadSystemInfo(handle uint16) (*domain.SystemInfo, error) {
 
 	series := C.GoStringN(&sysInfo.series[0], C.int(len(sysInfo.series)))
 	version := C.GoStringN(&sysInfo.version[0], C.int(len(sysInfo.version)))
+	axesStr := C.GoStringN(&sysInfo.axes[0], C.int(len(sysInfo.axes)))
+
+	controlledAxes, err := strconv.Atoi(trimNull(axesStr))
+	if err != nil {
+		controlledAxes = 0 // В случае ошибки парсинга, считаем что осей 0
+	}
 
 	data := &domain.SystemInfo{
-		Manufacturer: "FANUC",
-		Series:       trimNull(series),
-		Version:      trimNull(version),
-		Model:        fmt.Sprintf("Series %s Version %s", trimNull(series), trimNull(version)),
+		Manufacturer:   "FANUC",
+		Series:         trimNull(series),
+		Version:        trimNull(version),
+		Model:          fmt.Sprintf("Series %s Version %s", trimNull(series), trimNull(version)),
+		MaxAxis:        int16(sysInfo.max_axis),
+		ControlledAxes: int16(controlledAxes),
 	}
 
 	return data, nil
+}
+
+// ReadAxisData считывает имена и абсолютные позиции для всех управляемых осей.
+func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInfo, error) {
+	if numAxes <= 0 {
+		return []domain.AxisInfo{}, nil
+	}
+
+	// 1. Чтение абсолютных позиций всех осей одним вызовом
+	var axisPositions C.ODBAXIS
+	// Рассчитываем правильную длину для структуры ODBAXIS.
+	// При запросе всех осей (-1), библиотека вернет данные для maxAxes.
+	length := C.short(4 + 4*maxAxes)
+	rcPos := C.go_cnc_absolute(C.ushort(handle), length, &axisPositions)
+	if rcPos != C.EW_OK {
+		return nil, fmt.Errorf("cnc_absolute failed: rc=%d", int16(rcPos))
+	}
+
+	// 2. Чтение имен осей и комбинирование с позициями
+	var axisName C.ODBAXISNAME
+	axisInfos := make([]domain.AxisInfo, 0, numAxes)
+
+	for i := int16(1); i <= numAxes; i++ {
+		rcName := C.go_cnc_rdaxisname(C.ushort(handle), C.short(i), &axisName)
+		if rcName != C.EW_OK {
+			return nil, fmt.Errorf("cnc_rdaxisname for axis %d failed: rc=%d", i, int16(rcName))
+		}
+
+		nameChar := C.GoStringN(&axisName.name, 1)
+		suffixChar := C.GoStringN(&axisName.suff, 1)
+
+		fullName := nameChar
+		if suffixChar[0] != 0 && suffixChar[0] != ' ' {
+			fullName += suffixChar
+		}
+
+		// 3. Комбинирование имени и позиции
+		// Индексация в C-массиве axisPositions.data начинается с 0
+		position := int64(axisPositions.data[i-1])
+
+		axisInfos = append(axisInfos, domain.AxisInfo{
+			Name:     trimNull(fullName),
+			Position: position,
+		})
+	}
+
+	return axisInfos, nil
 }
 
 // ReadMachineState считывает полное состояние станка и передает его интерпретатору.

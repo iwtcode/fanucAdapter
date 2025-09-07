@@ -21,7 +21,8 @@ func Load() *Config {
 
 	ip := os.Getenv("FANUC_IP")
 	if ip == "" {
-		ip = "192.168.30.142"
+		ip = "192.168.0.6"
+		// ip = "192.168.30.142"
 	}
 
 	return &Config{
