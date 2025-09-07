@@ -6,18 +6,20 @@ package focas
 // #cgo windows LDFLAGS: -L../../ -lfwlib32
 
 #include <stdlib.h>
-#include <stdint.h> // <--- ДОБАВЛЕНО
+#include <stdint.h>
 #include "c_helpers.h"
 */
 import "C"
 
 import (
+	"encoding/binary"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"unsafe" // <--- ДОБАВЛЕНО
+	"unsafe"
 
 	"github.com/iwtcode/fanucService/pkg/domain"
 )
@@ -113,43 +115,58 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 		return []domain.AxisInfo{}, nil
 	}
 
-	// 1. Чтение абсолютных позиций всех осей одним вызовом
-	var axisPositions C.ODBAXIS
-	// Рассчитываем правильную длину для структуры ODBAXIS.
-	// FOCAS использует 32-битный long (4 байта) для позиций.
-	length := C.short(4 + 4*maxAxes)
-	rcPos := C.go_cnc_absolute(C.ushort(handle), -1, length, &axisPositions)
-	if rcPos != C.EW_OK {
-		return nil, fmt.Errorf("cnc_absolute failed: rc=%d", int16(rcPos))
+	// Размер структуры ODBPOS равен 48 байтам (4 * POSELM, где POSELM = 12 байт).
+	const odbposSize = 48
+	bufferSize := int(maxAxes) * odbposSize
+	buffer := make([]byte, bufferSize)
+	axesToRead := C.short(maxAxes)
+
+	// Вызываем C-функцию, передавая сырой байтовый буфер. [1]
+	rc := C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
+	if rc != C.EW_OK {
+		return nil, fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
 	}
 
-	// Создаем указатель на начало массива данных.
-	// На 64-битной Linux C.long - это 64 бита, но библиотека FOCAS записывает 32-битные long.
-	// Мы должны преобразовать указатель, чтобы правильно прочитать данные как 32-битные целые числа.
-	dataPtr := (*[C.MAX_AXIS]C.int32_t)(unsafe.Pointer(&axisPositions.data[0]))
+	// axesToRead содержит фактическое количество прочитанных осей.
+	if int(axesToRead) > int(maxAxes) {
+		axesToRead = C.short(maxAxes) // Не доверяем, если вернулось больше, чем мы просили
+	}
+	if int(axesToRead) <= 0 {
+		return []domain.AxisInfo{}, nil // Нет данных
+	}
 
-	// 2. Чтение имен осей и комбинирование с позициями
-	var axisName C.ODBAXISNAME
-	axisInfos := make([]domain.AxisInfo, 0, numAxes)
+	axisInfos := make([]domain.AxisInfo, 0, axesToRead)
 
-	for i := int16(1); i <= numAxes; i++ {
-		rcName := C.go_cnc_rdaxisname(C.ushort(handle), C.short(i), &axisName)
-		if rcName != C.EW_OK {
-			return nil, fmt.Errorf("cnc_rdaxisname for axis %d failed: rc=%d", i, int16(rcName))
+	for i := 0; i < int(axesToRead); i++ {
+		// Смещение для текущей структуры ODBPOS в буфере
+		offset := i * odbposSize
+
+		// Нас интересует только структура POSELM для абсолютной позиции,
+		// которая находится в начале каждой ODBPOS (смещение 0).
+		// Схема POSELM: data(4), dec(2), unit(2), disp(2), name(1), suff(1) = 12 байт
+
+		// Читаем поля POSELM вручную из среза байтов, предполагая порядок LittleEndian.
+		// long data; (смещение 0, 4 байта)
+		posDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+0 : offset+4]))
+		// short dec; (смещение 4, 2 байта)
+		posDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+4 : offset+6]))
+		// char name; (смещение 10, 1 байт)
+		posNameChar := buffer[offset+10]
+		// char suff; (смещение 11, 1 байт)
+		posSuffChar := buffer[offset+11]
+
+		// Пропускаем оси без имени
+		if posNameChar == 0 {
+			continue
 		}
 
-		nameChar := C.GoStringN(&axisName.name, 1)
-		suffixChar := C.GoStringN(&axisName.suff, 1)
-
-		fullName := nameChar
-		if suffixChar[0] != 0 && suffixChar[0] != ' ' {
-			fullName += suffixChar
+		fullName := string(posNameChar)
+		if posSuffChar != 0 && posSuffChar != ' ' {
+			fullName += string(posSuffChar)
 		}
 
-		// 3. Комбинирование имени и позиции
-		// Индексация в C-массиве axisPositions.data начинается с 0
-		// Читаем 32-битное значение из правильно преобразованного указателя.
-		position := float64(dataPtr[i-1]) / 1000.0
+		// Рассчитываем позицию с учетом десятичного разделителя [1]
+		position := float64(posDataVal) / math.Pow(10, float64(posDecVal))
 
 		axisInfos = append(axisInfos, domain.AxisInfo{
 			Name:     trimNull(fullName),
