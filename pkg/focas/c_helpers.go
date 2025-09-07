@@ -51,5 +51,13 @@ short go_cnc_rdaxisname(unsigned short h, short axis, ODBAXISNAME* axisname_out)
 short go_cnc_absolute(unsigned short h, short axis, short length, ODBAXIS* axis_out) {
     return cnc_absolute(h, axis, length, axis_out);
 }
+
+short go_cnc_relative(unsigned short h, short axis, short length, ODBAXIS* axis_out) {
+    return cnc_relative(h, axis, length, axis_out);
+}
+
+short go_cnc_machine(unsigned short h, short axis, short length, ODBAXIS* axis_out) {
+    return cnc_machine(h, axis, length, axis_out);
+}
 */
 import "C"
