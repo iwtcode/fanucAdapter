@@ -113,16 +113,22 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 		return []domain.AxisInfo{}, nil
 	}
 
+	// 1. Чтение абсолютных позиций всех осей одним вызовом
 	var axisPositions C.ODBAXIS
-
-	length := C.short(4 + 4*C.MAX_AXIS)
+	// Рассчитываем правильную длину для структуры ODBAXIS.
+	// FOCAS использует 32-битный long (4 байта) для позиций.
+	length := C.short(4 + 4*maxAxes)
 	rcPos := C.go_cnc_absolute(C.ushort(handle), -1, length, &axisPositions)
 	if rcPos != C.EW_OK {
 		return nil, fmt.Errorf("cnc_absolute failed: rc=%d", int16(rcPos))
 	}
 
+	// Создаем указатель на начало массива данных.
+	// На 64-битной Linux C.long - это 64 бита, но библиотека FOCAS записывает 32-битные long.
+	// Мы должны преобразовать указатель, чтобы правильно прочитать данные как 32-битные целые числа.
 	dataPtr := (*[C.MAX_AXIS]C.int32_t)(unsafe.Pointer(&axisPositions.data[0]))
 
+	// 2. Чтение имен осей и комбинирование с позициями
 	var axisName C.ODBAXISNAME
 	axisInfos := make([]domain.AxisInfo, 0, numAxes)
 
@@ -140,7 +146,10 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 			fullName += suffixChar
 		}
 
-		position := int64(dataPtr[i-1])
+		// 3. Комбинирование имени и позиции
+		// Индексация в C-массиве axisPositions.data начинается с 0
+		// Читаем 32-битное значение из правильно преобразованного указателя.
+		position := float64(dataPtr[i-1]) / 1000.0
 
 		axisInfos = append(axisInfos, domain.AxisInfo{
 			Name:     trimNull(fullName),

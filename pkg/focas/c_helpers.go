@@ -59,5 +59,9 @@ short go_cnc_relative(unsigned short h, short axis, short length, ODBAXIS* axis_
 short go_cnc_machine(unsigned short h, short axis, short length, ODBAXIS* axis_out) {
     return cnc_machine(h, axis, length, axis_out);
 }
+
+short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* position) {
+    return cnc_rdposition(h, type, data_num, position);
+}
 */
 import "C"

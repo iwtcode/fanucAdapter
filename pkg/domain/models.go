@@ -19,7 +19,7 @@ type SystemInfo struct {
 // AxisInfo содержит информацию об оси.
 type AxisInfo struct {
 	Name     string
-	Position int64
+	Position float64
 }
 
 // UnifiedMachineData содержит полное унифицированное состояние станка.
