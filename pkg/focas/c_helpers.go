@@ -48,9 +48,8 @@ short go_cnc_rdaxisname(unsigned short h, short axis, ODBAXISNAME* axisname_out)
     return cnc_rdaxisname(h, &axis, axisname_out);
 }
 
-short go_cnc_absolute(unsigned short h, short length, ODBAXIS* axis_out) {
-    // Второй параметр (-1) означает "все оси"
-    return cnc_absolute(h, -1, length, axis_out);
+short go_cnc_absolute(unsigned short h, short axis, short length, ODBAXIS* axis_out) {
+    return cnc_absolute(h, axis, length, axis_out);
 }
 */
 import "C"
