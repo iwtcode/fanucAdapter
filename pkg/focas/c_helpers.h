@@ -3,9 +3,6 @@
 
 #include "fwlib32.h"
 
-// Объявления (прототипы) наших C-хелперов.
-// Ключевое слово `static` убрано!
-
 short go_cnc_startupprocess(unsigned short mode, const char* logpath);
 short go_cnc_allclibhndl3(const char* ip, unsigned short port, long timeout_ms, unsigned short* handle_out);
 short go_cnc_freelibhndl(unsigned short h);

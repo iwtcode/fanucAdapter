@@ -5,10 +5,7 @@ package focas
 #cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
 // #cgo windows LDFLAGS: -L../../ -lfwlib32
 
-// Добавляем stdlib.h, чтобы сделать C.free доступным
 #include <stdlib.h>
-
-// Подключаем заголовочный файл с объявлениями наших хелперов.
 #include "c_helpers.h"
 */
 import "C"
@@ -35,7 +32,7 @@ func Startup(mode uint16, logPath string) error {
 	}
 
 	cpath := C.CString(logPath)
-	defer C.free(unsafe.Pointer(cpath)) // Эта строка теперь будет работать
+	defer C.free(unsafe.Pointer(cpath))
 
 	rc := C.go_cnc_startupprocess(C.ushort(mode), cpath)
 	if rc != C.EW_OK {
@@ -47,7 +44,7 @@ func Startup(mode uint16, logPath string) error {
 // Connect подключается к станку и возвращает хендл.
 func Connect(ip string, port uint16, timeoutMs int32) (uint16, error) {
 	cip := C.CString(ip)
-	defer C.free(unsafe.Pointer(cip)) // И эта строка
+	defer C.free(unsafe.Pointer(cip))
 
 	var h C.ushort
 	rc := C.go_cnc_allclibhndl3(cip, C.ushort(port), C.long(timeoutMs), &h)

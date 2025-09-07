@@ -9,15 +9,15 @@ import (
 */
 import "C"
 
-// InterpretMachineState принимает сырую структуру ODBST и преобразует ее
-// в человекочитаемую доменную модель UnifiedMachineData.
+// InterpretMachineState принимает сырую структуру ODBST
+// и преобразует ее в доменную модель UnifiedMachineData.
 func InterpretMachineState(stat *C.ODBST) *domain.UnifiedMachineData {
 	return &domain.UnifiedMachineData{
 		TmMode:             interpretTmMode(stat.tmmode),
 		ProgramMode:        interpretProgramMode(stat.aut),
 		MachineState:       interpretMachineState(stat.run),
 		AxisMovementStatus: interpretAxisMovement(stat.motion),
-		MstbStatus:         interpretMstbStatus(stat.mstb), // Эта строка теперь корректна
+		MstbStatus:         interpretMstbStatus(stat.mstb),
 		EmergencyStatus:    interpretEmergencyStatus(stat.emergency),
 		AlarmStatus:        interpretAlarmStatus(stat.alarm),
 		EditStatus:         interpretEditStatus(stat.tmmode, stat.edit),
@@ -94,8 +94,6 @@ func interpretAxisMovement(motion C.short) string {
 	}
 }
 
-// ===== ИСПРАВЛЕНИЕ ЗДЕСЬ =====
-// Тип изменен с C.long на C.short
 func interpretMstbStatus(mstb C.short) string {
 	if mstb == 1 {
 		return "FIN"
@@ -144,7 +142,6 @@ func interpretAlarmStatus(alarm C.short) string {
 }
 
 func interpretEditStatus(tmmode C.short, editValue C.short) string {
-	// ... (остальной код функции без изменений)
 	switch tmmode {
 	case 0: // T mode (токарный станок)
 		switch editValue {
@@ -203,7 +200,7 @@ func interpretEditStatus(tmmode C.short, editValue C.short) string {
 		case 43:
 			return "PRG-CHK"
 		case 44:
-			return "APC" // Дублируется, но оставлено для соответствия
+			return "APC"
 		case 45:
 			return "S-TCP"
 		case 59:
@@ -278,7 +275,7 @@ func interpretEditStatus(tmmode C.short, editValue C.short) string {
 		case 43:
 			return "PRG-CHK"
 		case 44:
-			return "APC" // Дублируется, но оставлено для соответствия
+			return "APC"
 		case 45:
 			return "S-TCP"
 		case 59:
