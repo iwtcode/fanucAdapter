@@ -19,5 +19,6 @@ short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* p
 short go_cnc_upstart(unsigned short h, short prog_num);
 short go_cnc_upload(unsigned short h, ODBUP* data_out, unsigned short* len);
 short go_cnc_upend(unsigned short h);
+short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data);
 
 #endif // C_HELPERS_H

@@ -77,5 +77,10 @@ short go_cnc_upend(unsigned short h) {
     return cnc_upend(h);
 }
 
+// Новая функция для чтения выполняемой строки
+short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data) {
+    return cnc_rdexecprog(h, length, blknum, data);
+}
+
 */
 import "C"

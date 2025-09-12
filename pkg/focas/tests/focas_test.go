@@ -3,6 +3,7 @@ package tests
 import (
 	"encoding/json"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/iwtcode/fanucService/internal/config"
@@ -62,8 +63,9 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 			t.Skipf("Пропускаем тест информации о программе: %v", err)
 		} else {
 			pkgProgInfo := models.ProgramInfo{
-				Name:   internalProgInfo.Name,
-				Number: internalProgInfo.Number,
+				Name:      internalProgInfo.Name,
+				Number:    internalProgInfo.Number,
+				GCodeLine: internalProgInfo.CurrentGCode,
 			}
 			logAsJSON(t, "ProgramInfo", pkgProgInfo)
 		}
@@ -113,18 +115,19 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 	})
 
 	// 8) Чтение полного текста программы
-	t.Run("ReadFullProgram", func(t *testing.T) {
-		programData, err := focas.ReadFullProgram(h)
+	t.Run("GetControlProgram", func(t *testing.T) {
+		gcode, err := focas.GetControlProgram(h)
 		if err != nil {
 			log.Printf("Не удалось прочитать содержимое программы: %v", err)
 			t.Skipf("Пропускаем тест содержимого программы: %v", err)
 		} else {
-			pkgControlProgram := models.ControlProgram{
-				Name:    programData.Name,
-				Number:  programData.Number,
-				Content: programData.Content,
+			filePath := "g_code.log"
+			err := os.WriteFile(filePath, []byte(gcode), 0644)
+			if err != nil {
+				t.Errorf("Не удалось записать G-код в файл %s: %v", filePath, err)
+			} else {
+				t.Logf("G-код программы успешно сохранен в %s", filePath)
 			}
-			logAsJSON(t, "ProgramContent", pkgControlProgram)
 		}
 	})
 }

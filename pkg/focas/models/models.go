@@ -2,15 +2,17 @@ package focas
 
 // ProgramInfo представляет информацию о программе на уровне пакета
 type ProgramInfo struct {
-	Name   string `json:"name"`
-	Number int64  `json:"number"`
+	Name      string `json:"program_name"`
+	Number    int64  `json:"program_number"`
+	GCodeLine string `json:"g_code_line"`
 }
 
 // ControlProgram представляет полные данные о программе для вывода в API/тестах
 type ControlProgram struct {
-	Name    string `json:"name"`
-	Number  int64  `json:"number"`
-	Content string `json:"content"`
+	Name      string `json:"program_name"`
+	Number    int64  `json:"program_number"`
+	GCodeLine string `json:"g_code_line"`
+	GCode     string `json:"g_code"`
 }
 
 // SystemInfo представляет системную информацию на уровне пакета

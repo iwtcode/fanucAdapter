@@ -66,28 +66,53 @@ func Disconnect(handle uint16) {
 	C.go_cnc_freelibhndl(C.ushort(handle))
 }
 
-// ReadProgram считывает информацию о текущей выполняемой программе
+// ReadProgram считывает информацию о текущей выполняемой программе и текущую строку G-кода
 func ReadProgram(handle uint16) (*domain.ProgramInfo, error) {
+	// 1. Получаем имя и номер программы
 	nameBuf := make([]byte, 64)
 	var onum C.long
 	rc := C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
 	if rc != C.EW_OK {
 		return nil, fmt.Errorf("cnc_exeprgname rc=%d", int16(rc))
 	}
-	return &domain.ProgramInfo{
+
+	progInfo := &domain.ProgramInfo{
 		Name:   trimNull(string(nameBuf)),
 		Number: int64(onum),
-	}, nil
+	}
+
+	// 2. Получаем текущую выполняемую строку G-кода
+	var length C.ushort = 256
+	var blknum C.short
+	dataBuf := make([]byte, length)
+	rcExec := C.go_cnc_rdexecprog(C.ushort(handle), &length, &blknum, (*C.char)(unsafe.Pointer(&dataBuf[0])))
+
+	if rcExec == C.EW_OK {
+		// Функция может возвращать несколько блоков, разделенных символом новой строки.
+		// Нас интересует только первая строка, которая является текущей выполняемой.
+		fullBlock := trimNull(string(dataBuf[:length]))
+		lines := strings.Split(fullBlock, "\n")
+		if len(lines) > 0 {
+			progInfo.CurrentGCode = lines[0]
+		} else {
+			progInfo.CurrentGCode = ""
+		}
+	} else {
+		// Не возвращаем ошибку, так как информация о программе может быть полезна,
+		// а строка G-кода может быть недоступна (например, если программа не выполняется).
+		// Оставляем поле пустым.
+		progInfo.CurrentGCode = ""
+	}
+
+	return progInfo, nil
 }
 
-// D:\vs\go\fanucService\internal\focas\focas.go
-
-// ReadFullProgram считывает информацию и полное содержимое текущей выполняемой программы
-func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
+// GetControlProgram считывает полное содержимое текущей выполняемой программы
+func GetControlProgram(handle uint16) (string, error) {
 	// 1. Получаем информацию о программе (имя и номер)
 	progInfo, err := ReadProgram(handle)
 	if err != nil {
-		return nil, fmt.Errorf("could not read program info: %w", err)
+		return "", fmt.Errorf("could not read program info: %w", err)
 	}
 
 	// Извлекаем номер программы из её имени (например, "O1234" -> 1234).
@@ -105,19 +130,21 @@ func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 	}
 
 	if programNumberToUpload <= 0 {
-		return nil, fmt.Errorf("no program is currently running or program number could not be determined (name: '%s', number: %d)", progInfo.Name, progInfo.Number)
+		return "", fmt.Errorf("no program is currently running or program number could not be determined (name: '%s', number: %d)", progInfo.Name, progInfo.Number)
 	}
 
 	// 2. Начинаем процесс выгрузки программы с корректным номером
 	rc := C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
 	if rc != C.EW_OK {
-		return nil, fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progInfo.Name, programNumberToUpload, int16(rc))
+		return "", fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progInfo.Name, programNumberToUpload, int16(rc))
 	}
 	defer C.go_cnc_upend(C.ushort(handle))
 
 	// 3. Читаем программу в цикле
 	var sb strings.Builder
 	var buffer C.ODBUP
+	emptyBufferRetries := 0
+	const maxEmptyRetries = 1000 // Защита от вечного цикла
 
 	for {
 		length := C.ushort(256)
@@ -126,12 +153,23 @@ func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 		if length > 0 {
 			goBytes := C.GoBytes(unsafe.Pointer(&buffer.data[0]), C.int(length))
 			sb.Write(goBytes)
+			emptyBufferRetries = 0 // Сбрасываем счетчик, так как получили данные
+		} else {
+			emptyBufferRetries++
 		}
 
-		// Любой код, кроме EW_OK, означает завершение передачи (успешное или нет).
-		if rcUpload != C.EW_OK {
-			break
+		if rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER {
+			// Если мы 1000 раз подряд не получили данных, выходим, чтобы избежать зависания.
+			if emptyBufferRetries > maxEmptyRetries {
+				break
+			}
+			// Продолжаем, даже если буфер был пуст.
+			continue
 		}
+
+		// Выходим из цикла только при явной ошибке,
+		// которая не является ни EW_OK, ни EW_BUFFER.
+		break
 	}
 
 	// 4. Обрабатываем собранные данные (минимальная обработка)
@@ -144,10 +182,7 @@ func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 		finalContent = "%\n" + finalContent
 	}
 
-	return &domain.ControlProgram{
-		ProgramInfo: *progInfo,
-		Content:     finalContent,
-	}, nil
+	return finalContent, nil
 }
 
 // ReadSystemInfo считывает и возвращает системную информацию о станке

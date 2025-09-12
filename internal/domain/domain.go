@@ -2,14 +2,15 @@ package domain
 
 // ProgramInfo содержит информацию о выполняемой программе
 type ProgramInfo struct {
-	Name   string
-	Number int64
+	Name         string
+	Number       int64
+	CurrentGCode string
 }
 
 // ControlProgram содержит информацию о выполняемой программе и ее содержимое
 type ControlProgram struct {
 	ProgramInfo
-	Content string
+	GCode string
 }
 
 // SystemInfo содержит системную информацию о станке
