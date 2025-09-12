@@ -6,6 +6,12 @@ type ProgramInfo struct {
 	Number int64
 }
 
+// ControlProgram содержит информацию о выполняемой программе и ее содержимое
+type ControlProgram struct {
+	ProgramInfo
+	Content string
+}
+
 // SystemInfo содержит системную информацию о станке
 type SystemInfo struct {
 	Manufacturer   string

@@ -60,5 +60,22 @@ short go_cnc_machine(unsigned short h, short axis, short length, ODBAXIS* axis_o
 short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* position) {
     return cnc_rdposition(h, type, data_num, position);
 }
+
+// Новые функции
+short go_cnc_upstart(unsigned short h, short prog_num) {
+    // Используем cnc_upstart, так как он принимает номер программы (O-number)
+    // в отличие от cnc_upstart4, который принимает путь к файлу.
+    // Тип 0 означает чтение по номеру программы.
+    return cnc_upstart(h, prog_num);
+}
+
+short go_cnc_upload(unsigned short h, ODBUP* data_out, unsigned short* len) {
+    return cnc_upload(h, data_out, len);
+}
+
+short go_cnc_upend(unsigned short h) {
+    return cnc_upend(h);
+}
+
 */
 import "C"

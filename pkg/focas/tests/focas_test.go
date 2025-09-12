@@ -111,6 +111,22 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 		}
 		logAsJSON(t, "MachineState", pkgState)
 	})
+
+	// 8) Чтение полного текста программы
+	t.Run("ReadFullProgram", func(t *testing.T) {
+		programData, err := focas.ReadFullProgram(h)
+		if err != nil {
+			log.Printf("Не удалось прочитать содержимое программы: %v", err)
+			t.Skipf("Пропускаем тест содержимого программы: %v", err)
+		} else {
+			pkgControlProgram := models.ControlProgram{
+				Name:    programData.Name,
+				Number:  programData.Number,
+				Content: programData.Content,
+			}
+			logAsJSON(t, "ProgramContent", pkgControlProgram)
+		}
+	})
 }
 
 // logAsJSON форматирует данные в JSON и выводит в лог теста

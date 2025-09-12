@@ -6,6 +6,13 @@ type ProgramInfo struct {
 	Number int64  `json:"number"`
 }
 
+// ControlProgram представляет полные данные о программе для вывода в API/тестах
+type ControlProgram struct {
+	Name    string `json:"name"`
+	Number  int64  `json:"number"`
+	Content string `json:"content"`
+}
+
 // SystemInfo представляет системную информацию на уровне пакета
 type SystemInfo struct {
 	Manufacturer   string `json:"manufacturer"`
