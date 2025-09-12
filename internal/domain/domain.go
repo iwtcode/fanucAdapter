@@ -1,12 +1,12 @@
 package domain
 
-// ProgramInfo содержит информацию о выполняемой программе.
+// ProgramInfo содержит информацию о выполняемой программе
 type ProgramInfo struct {
 	Name   string
 	Number int64
 }
 
-// SystemInfo содержит системную информацию о станке.
+// SystemInfo содержит системную информацию о станке
 type SystemInfo struct {
 	Manufacturer   string
 	Model          string
@@ -16,13 +16,13 @@ type SystemInfo struct {
 	ControlledAxes int16
 }
 
-// AxisInfo содержит информацию об оси.
+// AxisInfo содержит информацию об оси
 type AxisInfo struct {
 	Name     string
 	Position float64
 }
 
-// UnifiedMachineData содержит полное унифицированное состояние станка.
+// UnifiedMachineData содержит полное унифицированное состояние станка
 type UnifiedMachineData struct {
 	TmMode             string
 	ProgramMode        string

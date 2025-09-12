@@ -18,7 +18,7 @@ const (
 	NotFoundErrorCode       = 404
 )
 
-// AppError представляет собой стандартизированную структуру ошибки для API.
+// AppError представляет собой стандартизированную структуру ошибки для API
 type AppError struct {
 	Code         int    `json:"code"`    // HTTP статус код
 	Message      string `json:"message"` // Сообщение для клиента
@@ -36,7 +36,7 @@ func (a *AppError) Error() string {
 	return fmt.Sprintf("%s (code: %d)", a.Message, a.Code)
 }
 
-// NewAppError создает новый экземпляр AppError.
+// NewAppError создает новый экземпляр AppError
 func NewAppError(httpCode int, message string, err error, isUserFacing bool) *AppError {
 	return &AppError{
 		Code:         httpCode,

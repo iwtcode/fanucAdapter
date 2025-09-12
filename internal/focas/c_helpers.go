@@ -8,8 +8,6 @@ package focas
 #include <string.h>
 #include "c_helpers.h"
 
-// ---- Реализация C-helpers ----
-
 short go_cnc_startupprocess(unsigned short mode, const char* logpath) {
     return cnc_startupprocess(mode, logpath);
 }
@@ -44,7 +42,6 @@ short go_cnc_sysinfo(unsigned short h, ODBSYS* sys_info_out) {
 }
 
 short go_cnc_rdaxisname(unsigned short h, short axis, ODBAXISNAME* axisname_out) {
-    // Для cnc_rdaxisname второй аргумент должен быть указателем
     return cnc_rdaxisname(h, &axis, axisname_out);
 }
 

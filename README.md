@@ -1,3 +1,5 @@
 # fanucService
 
-LD_LIBRARY_PATH=. go run pkg/cmd/main.go
+cd fanucService
+export LD_LIBRARY_PATH=$PWD
+go test -v ./...

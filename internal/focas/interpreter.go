@@ -1,7 +1,7 @@
 package focas
 
 import (
-	"github.com/iwtcode/fanucService/pkg/domain"
+	"github.com/iwtcode/fanucService/internal/domain"
 )
 
 /*
