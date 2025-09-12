@@ -80,6 +80,8 @@ func ReadProgram(handle uint16) (*domain.ProgramInfo, error) {
 	}, nil
 }
 
+// D:\vs\go\fanucService\internal\focas\focas.go
+
 // ReadFullProgram считывает информацию и полное содержимое текущей выполняемой программы
 func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 	// 1. Получаем информацию о программе (имя и номер)
@@ -89,8 +91,6 @@ func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 	}
 
 	// Извлекаем номер программы из её имени (например, "O1234" -> 1234).
-	// Это более надежный метод, чем использование поля Number, которое может содержать
-	// внутренний идентификатор, а не O-номер.
 	var programNumberToUpload int64
 	if strings.HasPrefix(progInfo.Name, "O") {
 		parsedNum, err := strconv.ParseInt(strings.TrimSpace(progInfo.Name[1:]), 10, 64)
@@ -134,23 +134,12 @@ func ReadFullProgram(handle uint16) (*domain.ControlProgram, error) {
 		}
 	}
 
-	// 4. Обрабатываем собранные данные
-	// 4.1 Заменяем все нулевые символы, которые FANUC использует как разделители, на пробелы.
-	fullContent := sb.String()
-	fullContentWithSpaces := strings.ReplaceAll(fullContent, "\x00", " ")
+	// 4. Обрабатываем собранные данные (минимальная обработка)
+	// Просто удаляем все нулевые символы, которые могут быть заполнителями.
+	rawContent := strings.ReplaceAll(sb.String(), "\x00", "")
+	finalContent := strings.TrimSpace(rawContent)
 
-	// 4.2 Разбиваем на строки и очищаем каждую от лишних пробелов в конце.
-	lines := strings.Split(fullContentWithSpaces, "\n")
-	var cleanedLines []string
-	for _, line := range lines {
-		cleanedLines = append(cleanedLines, strings.TrimRight(line, " "))
-	}
-
-	// 4.3 Собираем обратно и делаем финальную очистку.
-	finalContent := strings.Join(cleanedLines, "\n")
-	finalContent = strings.TrimSpace(finalContent)
-
-	// 4.4 Гарантируем, что программа начинается с символа '%'
+	// Гарантируем, что программа начинается с символа '%'
 	if !strings.HasPrefix(finalContent, "%") {
 		finalContent = "%\n" + finalContent
 	}
