@@ -115,7 +115,6 @@ func GetControlProgram(handle uint16) (string, error) {
 		return "", fmt.Errorf("could not read program info: %w", err)
 	}
 
-	// Извлекаем номер программы из её имени (например, "O1234" -> 1234).
 	var programNumberToUpload int64
 	if strings.HasPrefix(progInfo.Name, "O") {
 		parsedNum, err := strconv.ParseInt(strings.TrimSpace(progInfo.Name[1:]), 10, 64)
@@ -124,7 +123,6 @@ func GetControlProgram(handle uint16) (string, error) {
 		}
 	}
 
-	// Если не удалось извлечь из имени, пробуем использовать номер из progInfo.
 	if programNumberToUpload == 0 {
 		programNumberToUpload = progInfo.Number
 	}
@@ -143,8 +141,6 @@ func GetControlProgram(handle uint16) (string, error) {
 	// 3. Читаем программу в цикле
 	var sb strings.Builder
 	var buffer C.ODBUP
-	emptyBufferRetries := 0
-	const maxEmptyRetries = 1000 // Защита от вечного цикла
 
 	for {
 		length := C.ushort(256)
@@ -153,31 +149,31 @@ func GetControlProgram(handle uint16) (string, error) {
 		if length > 0 {
 			goBytes := C.GoBytes(unsafe.Pointer(&buffer.data[0]), C.int(length))
 			sb.Write(goBytes)
-			emptyBufferRetries = 0 // Сбрасываем счетчик, так как получили данные
-		} else {
-			emptyBufferRetries++
 		}
 
-		if rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER {
-			// Если мы 1000 раз подряд не получили данных, выходим, чтобы избежать зависания.
-			if emptyBufferRetries > maxEmptyRetries {
-				break
-			}
-			// Продолжаем, даже если буфер был пуст.
-			continue
+		if rcUpload != C.EW_OK && rcUpload != C.EW_BUFFER {
+			break
 		}
 
-		// Выходим из цикла только при явной ошибке,
-		// которая не является ни EW_OK, ни EW_BUFFER.
-		break
+		if rcUpload == C.EW_OK && length == 0 {
+			break
+		}
 	}
 
-	// 4. Обрабатываем собранные данные (минимальная обработка)
-	// Просто удаляем все нулевые символы, которые могут быть заполнителями.
+	// 4. Обрабатываем собранные данные
 	rawContent := strings.ReplaceAll(sb.String(), "\x00", "")
-	finalContent := strings.TrimSpace(rawContent)
+	firstPercent := strings.Index(rawContent, "%")
+	lastPercent := strings.LastIndex(rawContent, "%")
+	var finalContent string
 
-	// Гарантируем, что программа начинается с символа '%'
+	if firstPercent != -1 && lastPercent > firstPercent {
+		finalContent = rawContent[:lastPercent+1]
+	} else {
+		finalContent = rawContent
+	}
+
+	finalContent = strings.TrimSpace(finalContent)
+
 	if !strings.HasPrefix(finalContent, "%") {
 		finalContent = "%\n" + finalContent
 	}
