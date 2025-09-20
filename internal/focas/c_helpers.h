@@ -14,11 +14,11 @@ short go_cnc_absolute(unsigned short h, short axis, short length, ODBAXIS* axis_
 short go_cnc_relative(unsigned short h, short axis, short length, ODBAXIS* axis_out);
 short go_cnc_machine(unsigned short h, short axis, short length, ODBAXIS* axis_out);
 short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* position);
-
-// Новые функции для чтения программы
 short go_cnc_upstart(unsigned short h, short prog_num);
 short go_cnc_upload(unsigned short h, ODBUP* data_out, unsigned short* len);
 short go_cnc_upend(unsigned short h);
 short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data);
+short go_cnc_rdsvmeter(unsigned short h, short* axis_num, ODBSVLOAD* loadmeter);
+short go_cnc_diagnoss(unsigned short h, short diag_no, short axis_num, short length, ODBDGN* diag_out);
 
 #endif // C_HELPERS_H

@@ -26,8 +26,13 @@ type SystemInfo struct {
 
 // AxisInfo представляет информацию об оси на уровне пакета
 type AxisInfo struct {
-	Name     string  `json:"name"`
-	Position float64 `json:"position"`
+	Name             string  `json:"name"`
+	Position         float64 `json:"position"`
+	LoadPercent      float64 `json:"load_percent"`
+	ServoTemperature int32   `json:"servo_temperature"`
+	CoderTemperature int32   `json:"coder_temperature"`
+	PowerConsumption int32   `json:"power_consumption"`
+	Diag301          float64 `json:"diag_301"`
 }
 
 // MachineState представляет состояние станка на уровне пакета

@@ -61,11 +61,7 @@ short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* p
     return cnc_rdposition(h, type, data_num, position);
 }
 
-// Новые функции
 short go_cnc_upstart(unsigned short h, short prog_num) {
-    // Используем cnc_upstart, так как он принимает номер программы (O-number)
-    // в отличие от cnc_upstart4, который принимает путь к файлу.
-    // Тип 0 означает чтение по номеру программы.
     return cnc_upstart(h, prog_num);
 }
 
@@ -77,9 +73,16 @@ short go_cnc_upend(unsigned short h) {
     return cnc_upend(h);
 }
 
-// Новая функция для чтения выполняемой строки
 short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data) {
     return cnc_rdexecprog(h, length, blknum, data);
+}
+
+short go_cnc_rdsvmeter(unsigned short h, short* axis_num, ODBSVLOAD* loadmeter) {
+    return cnc_rdsvmeter(h, axis_num, loadmeter);
+}
+
+short go_cnc_diagnoss(unsigned short h, short diag_no, short axis_num, short length, ODBDGN* diag_out) {
+    return cnc_diagnoss(h, diag_no, axis_num, length, diag_out);
 }
 
 */

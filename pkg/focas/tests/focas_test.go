@@ -87,8 +87,13 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 		pkgAxisInfos := make([]models.AxisInfo, len(internalAxisInfos))
 		for i, axis := range internalAxisInfos {
 			pkgAxisInfos[i] = models.AxisInfo{
-				Name:     axis.Name,
-				Position: axis.Position,
+				Name:             axis.Name,
+				Position:         axis.Position,
+				LoadPercent:      axis.LoadPercent,
+				ServoTemperature: axis.ServoTemperature,
+				CoderTemperature: axis.CoderTemperature,
+				PowerConsumption: axis.PowerConsumption,
+				Diag301:          axis.Diag301,
 			}
 		}
 		logAsJSON(t, "AxisData", pkgAxisInfos)
