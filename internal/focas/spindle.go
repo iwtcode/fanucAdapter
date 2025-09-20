@@ -18,37 +18,63 @@ import (
 	"github.com/iwtcode/fanucService/internal/domain"
 )
 
-// ReadSpindleData считывает информацию о скорости активного шпинделя.
+// ReadSpindleData считывает информацию о скорости, нагрузке и коррекции для всех активных шпинделей.
 func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
-	// Размер структуры ODBSPEED равен 24 байтам (2 * SPEEDELM, где SPEEDELM = 12 байт)
-	const odbspeedSize = 24
-	buffer := make([]byte, odbspeedSize)
+	// 1. Получаем данные о нагрузке и скорости для всех шпинделей
+	var numSpindles C.short = 4 // Максимальное количество шпинделей для чтения
+	const sploadSpspeedSize = 24
+	bufferSize := int(numSpindles) * sploadSpspeedSize
+	buffer := make([]byte, bufferSize)
 
-	// Вызываем C-функцию. type = 1 для получения скорости шпинделя (acts).
-	rc := C.go_cnc_rdspeed(C.ushort(handle), 1, (*C.ODBSPEED)(unsafe.Pointer(&buffer[0])))
+	rc := C.go_cnc_rdspmeter(C.ushort(handle), -1, &numSpindles, (*C.ODBSPLOAD)(unsafe.Pointer(&buffer[0])))
 	if rc != C.EW_OK {
-		return nil, fmt.Errorf("cnc_rdspeed failed: rc=%d", int16(rc))
+		return nil, fmt.Errorf("cnc_rdspmeter failed: rc=%d", int16(rc))
 	}
 
-	// Структура ODBSPEED содержит 2 поля SPEEDELM: actf (подача) и acts (шпиндель).
-	// Нас интересует второе поле - acts, которое начинается со смещения 12.
-	// Схема SPEEDELM: data(4), dec(2), unit(2), disp(2), name(1), suff(1) = 12 байт.
-	offset := 12
+	if numSpindles <= 0 {
+		return []domain.SpindleInfo{}, nil
+	}
 
-	// Читаем 4-байтное значение скорости
-	speedDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+0 : offset+4]))
-	// Читаем 2-байтное значение десятичного разделителя
-	speedDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+4 : offset+6]))
+	// 2. Получаем данные о проценте коррекции (override)
+	var overrideData C.ODBSPN
+	rcOverride := C.go_cnc_rdspload(C.ushort(handle), -1, &overrideData)
 
-	// Рассчитываем скорость с учетом разделителя
-	speed := float64(speedDataVal) / math.Pow(10, float64(speedDecVal))
+	spindleInfos := make([]domain.SpindleInfo, 0, numSpindles)
 
-	// Функция cnc_rdspeed возвращает данные только для одного (активного) шпинделя.
-	spindleInfos := []domain.SpindleInfo{
-		{
-			Number:   1,
-			SpeedRPM: speed,
-		},
+	for i := 0; i < int(numSpindles); i++ {
+		offset := i * sploadSpspeedSize
+
+		// Парсим поле spload (нагрузка)
+		loadDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+0 : offset+4]))
+		loadDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+4 : offset+6]))
+		load := float64(loadDataVal) / math.Pow(10, float64(loadDecVal))
+
+		// Парсим поле spspeed (скорость)
+		speedDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+12 : offset+16]))
+		speedDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+16 : offset+18]))
+		rawSpeed := float64(speedDataVal) / math.Pow(10, float64(speedDecVal))
+
+		// Применяем коррекцию и округляем до ближайшего целого
+		correctedSpeed := rawSpeed / 2.0
+		speed := int32(math.Round(correctedSpeed))
+
+		var overridePercent int16
+		if rcOverride == C.EW_OK && i < len(overrideData.data) {
+			rawOverride := overrideData.data[i]
+
+			// !!! ВАЖНО: Сырое значение override - это число от 0 до 16383.
+			// Масштабируем его до диапазона 0-100%.
+			const maxOverrideValue = 16383.0
+			calculatedPercent := (float64(rawOverride) / maxOverrideValue) * 100.0
+			overridePercent = int16(math.Round(calculatedPercent))
+		}
+
+		spindleInfos = append(spindleInfos, domain.SpindleInfo{
+			Number:          int16(i + 1),
+			SpeedRPM:        speed,
+			LoadPercent:     load,
+			OverridePercent: overridePercent,
+		})
 	}
 
 	return spindleInfos, nil

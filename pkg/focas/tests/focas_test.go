@@ -125,9 +125,11 @@ func TestReadSpindleData(t *testing.T) {
 	pkgSpindleInfos := make([]models.SpindleInfo, len(internalSpindleInfos))
 	for i, spindle := range internalSpindleInfos {
 		pkgSpindleInfos[i] = models.SpindleInfo{
-			Number:   spindle.Number,
-			SpeedRPM: spindle.SpeedRPM,
-			// Остальные поля пока не заполняются
+			Number:           spindle.Number,
+			SpeedRPM:         spindle.SpeedRPM,
+			LoadPercent:      spindle.LoadPercent,
+			OverridePercent:  spindle.OverridePercent,
+			PowerConsumption: spindle.PowerConsumption,
 		}
 	}
 	logAsJSON(t, "SpindleData", pkgSpindleInfos)

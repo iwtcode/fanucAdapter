@@ -38,8 +38,8 @@ type AxisInfo struct {
 // SpindleInfo представляет информацию о шпинделе на уровне пакета
 type SpindleInfo struct {
 	Number           int16   `json:"number"`
-	SpeedRPM         float64 `json:"speed_rpm"`    // Изменено с int32 на float64
-	LoadPercent      float64 `json:"load_percent"` // Изменено с int32 на float64
+	SpeedRPM         int32   `json:"speed_rpm"`
+	LoadPercent      float64 `json:"load_percent"`
 	OverridePercent  int16   `json:"override_percent"`
 	PowerConsumption int32   `json:"power_consumption"`
 }
