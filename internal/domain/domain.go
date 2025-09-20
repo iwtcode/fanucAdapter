@@ -45,3 +45,12 @@ type UnifiedMachineData struct {
 	AlarmStatus        string
 	EditStatus         string
 }
+
+// SpindleInfo содержит информацию о шпинделе
+type SpindleInfo struct {
+	Number           int16
+	SpeedRPM         float64 // Изменено с int32 на float64
+	LoadPercent      float64 // Изменено с int32 на float64
+	OverridePercent  int16
+	PowerConsumption int32
+}

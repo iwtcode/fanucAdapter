@@ -20,5 +20,8 @@ short go_cnc_upend(unsigned short h);
 short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data);
 short go_cnc_rdsvmeter(unsigned short h, short* axis_num, ODBSVLOAD* loadmeter);
 short go_cnc_diagnoss(unsigned short h, short diag_no, short axis_num, short length, ODBDGN* diag_out);
+short go_cnc_rdspmeter(unsigned short h, short type, short* num, ODBSPLOAD* meter_out);
+short go_cnc_rdspeed(unsigned short h, short type, ODBSPEED* speed_out);
+short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out);
 
 #endif // C_HELPERS_H

@@ -99,7 +99,26 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 		logAsJSON(t, "AxisData", pkgAxisInfos)
 	})
 
-	// 7) Чтение полного состояния станка
+	// 7) Чтение информации о шпинделях
+	t.Run("ReadSpindleData", func(t *testing.T) {
+		internalSpindleInfos, err := focas.ReadSpindleData(h)
+		if err != nil {
+			t.Errorf("Не удалось прочитать информацию о шпинделях: %v", err)
+			return
+		}
+
+		pkgSpindleInfos := make([]models.SpindleInfo, len(internalSpindleInfos))
+		for i, spindle := range internalSpindleInfos {
+			pkgSpindleInfos[i] = models.SpindleInfo{
+				Number:   spindle.Number,
+				SpeedRPM: spindle.SpeedRPM,
+				// Остальные поля пока не заполняются
+			}
+		}
+		logAsJSON(t, "SpindleData", pkgSpindleInfos)
+	})
+
+	// 8) Чтение полного состояния станка
 	t.Run("ReadMachineState", func(t *testing.T) {
 		internalState, err := focas.ReadMachineState(h)
 		if err != nil {
@@ -119,7 +138,7 @@ func TestFanucConnectionAndDataReading(t *testing.T) {
 		logAsJSON(t, "MachineState", pkgState)
 	})
 
-	// 8) Чтение полного текста программы
+	// 9) Чтение полного текста программы
 	t.Run("GetControlProgram", func(t *testing.T) {
 		gcode, err := focas.GetControlProgram(h)
 		if err != nil {

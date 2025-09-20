@@ -85,5 +85,17 @@ short go_cnc_diagnoss(unsigned short h, short diag_no, short axis_num, short len
     return cnc_diagnoss(h, diag_no, axis_num, length, diag_out);
 }
 
+short go_cnc_rdspmeter(unsigned short h, short type, short* num, ODBSPLOAD* meter_out) {
+    return cnc_rdspmeter(h, type, num, meter_out);
+}
+
+short go_cnc_rdspeed(unsigned short h, short type, ODBSPEED* speed_out) {
+    return cnc_rdspeed(h, type, speed_out);
+}
+
+short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out) {
+    return cnc_rdspload(h, type, load_out);
+}
+
 */
 import "C"

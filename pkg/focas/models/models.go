@@ -35,6 +35,15 @@ type AxisInfo struct {
 	Diag301          float64 `json:"diag_301"`
 }
 
+// SpindleInfo представляет информацию о шпинделе на уровне пакета
+type SpindleInfo struct {
+	Number           int16   `json:"number"`
+	SpeedRPM         float64 `json:"speed_rpm"`    // Изменено с int32 на float64
+	LoadPercent      float64 `json:"load_percent"` // Изменено с int32 на float64
+	OverridePercent  int16   `json:"override_percent"`
+	PowerConsumption int32   `json:"power_consumption"`
+}
+
 // MachineState представляет состояние станка на уровне пакета
 type MachineState struct {
 	TmMode             string `json:"tm_mode"`
