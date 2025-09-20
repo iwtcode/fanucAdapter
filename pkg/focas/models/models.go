@@ -42,6 +42,7 @@ type SpindleInfo struct {
 	LoadPercent      float64 `json:"load_percent"`
 	OverridePercent  int16   `json:"override_percent"`
 	PowerConsumption int32   `json:"power_consumption"`
+	Diag411Value     int32   `json:"diag_411_value"`
 }
 
 // MachineState представляет состояние станка на уровне пакета

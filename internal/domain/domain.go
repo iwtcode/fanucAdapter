@@ -53,4 +53,5 @@ type SpindleInfo struct {
 	LoadPercent      float64
 	OverridePercent  int16
 	PowerConsumption int32
+	Diag411Value     int32
 }

@@ -21,7 +21,7 @@ import (
 // ReadSpindleData считывает информацию о скорости, нагрузке и коррекции для всех активных шпинделей.
 func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
 	// 1. Получаем данные о нагрузке и скорости для всех шпинделей
-	var numSpindles C.short = 4 // Максимальное количество шпинделей для чтения
+	var numSpindles C.short = 4
 	const sploadSpspeedSize = 24
 	bufferSize := int(numSpindles) * sploadSpspeedSize
 	buffer := make([]byte, bufferSize)
@@ -44,36 +44,42 @@ func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
 	for i := 0; i < int(numSpindles); i++ {
 		offset := i * sploadSpspeedSize
 
-		// Парсим поле spload (нагрузка)
+		// Парсинг нагрузки
 		loadDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+0 : offset+4]))
 		loadDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+4 : offset+6]))
 		load := float64(loadDataVal) / math.Pow(10, float64(loadDecVal))
 
-		// Парсим поле spspeed (скорость)
+		// Парсинг скорости
 		speedDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+12 : offset+16]))
 		speedDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+16 : offset+18]))
 		rawSpeed := float64(speedDataVal) / math.Pow(10, float64(speedDecVal))
 
-		// Применяем коррекцию и округляем до ближайшего целого
 		correctedSpeed := rawSpeed / 2.0
 		speed := int32(math.Round(correctedSpeed))
 
+		// Парсинг коррекции
 		var overridePercent int16
 		if rcOverride == C.EW_OK && i < len(overrideData.data) {
 			rawOverride := overrideData.data[i]
-
-			// !!! ВАЖНО: Сырое значение override - это число от 0 до 16383.
-			// Масштабируем его до диапазона 0-100%.
 			const maxOverrideValue = 16383.0
 			calculatedPercent := (float64(rawOverride) / maxOverrideValue) * 100.0
 			overridePercent = int16(math.Round(calculatedPercent))
 		}
 
+		// Чтение диагностики с использованием нового хелпера
+		var diag411Value int32
+		spindleNumber := int16(i + 1)
+		val, err := ReadDiagnosisWord(handle, 411, spindleNumber)
+		if err == nil {
+			diag411Value = val
+		}
+
 		spindleInfos = append(spindleInfos, domain.SpindleInfo{
-			Number:          int16(i + 1),
+			Number:          spindleNumber,
 			SpeedRPM:        speed,
 			LoadPercent:     load,
 			OverridePercent: overridePercent,
+			Diag411Value:    diag411Value,
 		})
 	}
 
