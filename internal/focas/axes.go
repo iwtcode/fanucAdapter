@@ -62,17 +62,35 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 
 		position := float64(posDataVal) / math.Pow(10, float64(posDecVal))
 
-		var diag301Value float64
 		axisNumber := int16(i + 1)
-		val, err := ReadDiagnosisReal(handle, 301, axisNumber)
-		if err == nil {
+
+		var diag301Value float64
+		if val, err := ReadDiagnosisReal(handle, 301, axisNumber); err == nil {
 			diag301Value = val
 		}
 
+		var servoTempValue int32
+		if val, err := ReadDiagnosisByte(handle, 308, axisNumber); err == nil {
+			servoTempValue = val
+		}
+
+		var coderTempValue int32
+		if val, err := ReadDiagnosisByte(handle, 309, axisNumber); err == nil {
+			coderTempValue = val
+		}
+
+		var powerConsumptionValue int64
+		if val, err := ReadDiagnosisDoubleWord(handle, 4901, axisNumber); err == nil {
+			powerConsumptionValue = val
+		}
+
 		axisInfos = append(axisInfos, domain.AxisInfo{
-			Name:     trimNull(fullName),
-			Position: position,
-			Diag301:  diag301Value,
+			Name:             trimNull(fullName),
+			Position:         position,
+			Diag301:          diag301Value,
+			ServoTemperature: servoTempValue,
+			CoderTemperature: coderTempValue,
+			PowerConsumption: int32(powerConsumptionValue),
 		})
 	}
 

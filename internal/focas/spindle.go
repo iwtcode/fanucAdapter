@@ -21,7 +21,7 @@ import (
 // ReadSpindleData считывает информацию о скорости, нагрузке и коррекции для всех активных шпинделей.
 func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
 	// 1. Получаем данные о нагрузке и скорости для всех шпинделей
-	var numSpindles C.short = 4
+	var numSpindles C.short = 8
 	const sploadSpspeedSize = 24
 	bufferSize := int(numSpindles) * sploadSpspeedSize
 	buffer := make([]byte, bufferSize)
