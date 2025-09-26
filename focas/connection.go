@@ -1,9 +1,9 @@
 package focas
 
 /*
-#cgo CFLAGS: -I../../
-#cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../../ -lfwlib32
+#cgo CFLAGS: -I../
+#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
+// #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include <stdlib.h>
 #include "c_helpers.h"

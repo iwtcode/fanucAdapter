@@ -1,9 +1,9 @@
 package focas
 
 /*
-#cgo CFLAGS: -I../../
-#cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../../ -lfwlib32
+#cgo CFLAGS: -I../
+#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
+// #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include "c_helpers.h"
 */
@@ -13,11 +13,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/iwtcode/fanucService/internal/domain"
+	"github.com/iwtcode/fanucService/models"
 )
 
 // ReadSystemInfo считывает и возвращает системную информацию о станке
-func ReadSystemInfo(handle uint16) (*domain.SystemInfo, error) {
+func ReadSystemInfo(handle uint16) (*models.SystemInfo, error) {
 	var sysInfo C.ODBSYS
 	rc := C.go_cnc_sysinfo(C.ushort(handle), &sysInfo)
 	if rc != C.EW_OK {
@@ -33,7 +33,7 @@ func ReadSystemInfo(handle uint16) (*domain.SystemInfo, error) {
 		controlledAxes = 0
 	}
 
-	data := &domain.SystemInfo{
+	data := &models.SystemInfo{
 		Manufacturer:   "FANUC",
 		Series:         trimNull(series),
 		Version:        trimNull(version),
@@ -46,7 +46,7 @@ func ReadSystemInfo(handle uint16) (*domain.SystemInfo, error) {
 }
 
 // ReadMachineState считывает полное состояние станка и передает его интерпретатору
-func ReadMachineState(handle uint16) (*domain.UnifiedMachineData, error) {
+func ReadMachineState(handle uint16) (*models.UnifiedMachineData, error) {
 	var stat C.ODBST
 	rc := C.go_cnc_statinfo(C.ushort(handle), &stat)
 	if rc != C.EW_OK {

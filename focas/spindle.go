@@ -1,9 +1,9 @@
 package focas
 
 /*
-#cgo CFLAGS: -I../../
-#cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../../ -lfwlib32
+#cgo CFLAGS: -I../
+#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
+// #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include "c_helpers.h"
 */
@@ -15,11 +15,11 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/internal/domain"
+	"github.com/iwtcode/fanucService/models"
 )
 
 // ReadSpindleData считывает информацию о скорости, нагрузке и коррекции для всех активных шпинделей.
-func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
+func ReadSpindleData(handle uint16) ([]models.SpindleInfo, error) {
 	// 1. Получаем данные о нагрузке и скорости для всех шпинделей
 	var numSpindles C.short = 8
 	const sploadSpspeedSize = 24
@@ -32,14 +32,14 @@ func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
 	}
 
 	if numSpindles <= 0 {
-		return []domain.SpindleInfo{}, nil
+		return []models.SpindleInfo{}, nil
 	}
 
 	// 2. Получаем данные о проценте коррекции (override)
 	var overrideData C.ODBSPN
 	rcOverride := C.go_cnc_rdspload(C.ushort(handle), -1, &overrideData)
 
-	spindleInfos := make([]domain.SpindleInfo, 0, numSpindles)
+	spindleInfos := make([]models.SpindleInfo, 0, numSpindles)
 
 	for i := 0; i < int(numSpindles); i++ {
 		offset := i * sploadSpspeedSize
@@ -74,7 +74,7 @@ func ReadSpindleData(handle uint16) ([]domain.SpindleInfo, error) {
 			diag411Value = val
 		}
 
-		spindleInfos = append(spindleInfos, domain.SpindleInfo{
+		spindleInfos = append(spindleInfos, models.SpindleInfo{
 			Number:          spindleNumber,
 			SpeedRPM:        speed,
 			LoadPercent:     load,

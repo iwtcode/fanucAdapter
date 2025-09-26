@@ -1,9 +1,9 @@
 package focas
 
 /*
-#cgo CFLAGS: -I../../
-#cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../../ -lfwlib32
+#cgo CFLAGS: -I../
+#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
+// #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include <stdlib.h>
 #include "c_helpers.h"
@@ -16,11 +16,11 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/internal/domain"
+	"github.com/iwtcode/fanucService/models"
 )
 
 // ReadProgram считывает информацию о текущей выполняемой программе и текущую строку G-кода
-func ReadProgram(handle uint16) (*domain.ProgramInfo, error) {
+func ReadProgram(handle uint16) (*models.ProgramInfo, error) {
 	// 1. Получаем имя и номер программы
 	nameBuf := make([]byte, 64)
 	var onum C.long
@@ -29,7 +29,7 @@ func ReadProgram(handle uint16) (*domain.ProgramInfo, error) {
 		return nil, fmt.Errorf("cnc_exeprgname rc=%d", int16(rc))
 	}
 
-	progInfo := &domain.ProgramInfo{
+	progInfo := &models.ProgramInfo{
 		Name:   trimNull(string(nameBuf)),
 		Number: int64(onum),
 	}

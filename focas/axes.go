@@ -1,9 +1,9 @@
 package focas
 
 /*
-#cgo CFLAGS: -I../../
-#cgo LDFLAGS: -L../../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../../ -lfwlib32
+#cgo CFLAGS: -I../
+#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
+// #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include "c_helpers.h"
 */
@@ -15,13 +15,13 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/internal/domain"
+	"github.com/iwtcode/fanucService/models"
 )
 
 // ReadAxisData считывает имена, абсолютные позиции и диагностику для всех управляемых осей
-func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInfo, error) {
+func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]models.AxisInfo, error) {
 	if numAxes <= 0 {
-		return []domain.AxisInfo{}, nil
+		return []models.AxisInfo{}, nil
 	}
 
 	const odbposSize = 48
@@ -38,10 +38,10 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 		axesToRead = C.short(maxAxes)
 	}
 	if int(axesToRead) <= 0 {
-		return []domain.AxisInfo{}, nil
+		return []models.AxisInfo{}, nil
 	}
 
-	axisInfos := make([]domain.AxisInfo, 0, axesToRead)
+	axisInfos := make([]models.AxisInfo, 0, axesToRead)
 
 	for i := 0; i < int(axesToRead); i++ {
 		offset := i * odbposSize
@@ -84,7 +84,7 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]domain.AxisInf
 			powerConsumptionValue = val
 		}
 
-		axisInfos = append(axisInfos, domain.AxisInfo{
+		axisInfos = append(axisInfos, models.AxisInfo{
 			Name:             trimNull(fullName),
 			Position:         position,
 			Diag301:          diag301Value,

@@ -1,4 +1,4 @@
-package config
+package fanuc
 
 import (
 	"os"
@@ -22,9 +22,7 @@ func Load() *Config {
 
 	ip := os.Getenv("FANUC_IP")
 	if ip == "" {
-		// ip = " 172.26.80.1"
 		ip = "192.168.0.3"
-		// ip = "192.168.30.142"
 	}
 
 	portStr := os.Getenv("FANUC_PORT")

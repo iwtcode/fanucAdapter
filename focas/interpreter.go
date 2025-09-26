@@ -1,7 +1,7 @@
 package focas
 
 import (
-	"github.com/iwtcode/fanucService/internal/domain"
+	"github.com/iwtcode/fanucService/models"
 )
 
 /*
@@ -11,8 +11,8 @@ import "C"
 
 // InterpretMachineState принимает сырую структуру ODBST
 // и преобразует ее в доменную модель UnifiedMachineData.
-func InterpretMachineState(stat *C.ODBST) *domain.UnifiedMachineData {
-	return &domain.UnifiedMachineData{
+func InterpretMachineState(stat *C.ODBST) *models.UnifiedMachineData {
+	return &models.UnifiedMachineData{
 		TmMode:             interpretTmMode(stat.tmmode),
 		ProgramMode:        interpretProgramMode(stat.aut),
 		MachineState:       interpretMachineState(stat.run),
