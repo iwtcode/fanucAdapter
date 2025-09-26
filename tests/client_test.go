@@ -54,7 +54,7 @@ func TestReadProgramInfo(t *testing.T) {
 
 	progInfo, err := c.GetProgramInfo()
 	if err != nil {
-		t.Skipf("Пропускаем тест информации о программе: %v", err)
+		log.Fatalf("Ошибка получения информации о программе: %v", err)
 	}
 
 	logAsJSON(t, "ProgramInfo", progInfo)
@@ -96,7 +96,7 @@ func TestGetControlProgram(t *testing.T) {
 
 	gcode, err := c.GetControlProgram()
 	if err != nil {
-		t.Skipf("Пропускаем тест содержимого программы: %v", err)
+		log.Fatalf("Ошибка при получении содержимого программы: %v", err)
 	}
 
 	filePath := "g_code.log"

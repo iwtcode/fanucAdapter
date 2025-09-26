@@ -5,14 +5,18 @@ package focas
 #cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
 // #cgo windows LDFLAGS: -L../ -lfwlib32
 
-#include "fwlib32.h"
+#include <stdlib.h>
+#include "c_helpers.h"
 */
 import "C"
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
+	"unsafe"
 
 	"github.com/iwtcode/fanucService/models"
 )
@@ -53,6 +57,44 @@ func NewFocasAdapter(ip string, port uint16, timeoutMs int32) (*FocasAdapter, er
 	return adapter, nil
 }
 
+// Startup инициализирует процесс FOCAS2
+func Startup(mode uint16, logPath string) error {
+	dir := filepath.Dir(logPath)
+	if dir != "" && dir != "." {
+		_ = os.MkdirAll(dir, 0o755)
+	}
+
+	cpath := C.CString(logPath)
+	defer C.free(unsafe.Pointer(cpath))
+
+	rc := C.go_cnc_startupprocess(C.ushort(mode), cpath)
+	if rc != C.EW_OK {
+		return fmt.Errorf("cnc_startupprocess(%d, %q) rc=%d", mode, logPath, int16(rc))
+	}
+	return nil
+}
+
+// Connect подключается к станку и возвращает хендл
+func Connect(ip string, port uint16, timeoutMs int32) (uint16, error) {
+	cip := C.CString(ip)
+	defer C.free(unsafe.Pointer(cip))
+
+	var h C.ushort
+	rc := C.go_cnc_allclibhndl3(cip, C.ushort(port), C.long(timeoutMs), &h)
+	if rc != C.EW_OK {
+		return 0, fmt.Errorf("cnc_allclibhndl3 failed: rc=%d", int16(rc))
+	}
+	return uint16(h), nil
+}
+
+// Disconnect освобождает хендл подключения
+func Disconnect(handle uint16) {
+	if handle == 0 {
+		return
+	}
+	C.go_cnc_freelibhndl(C.ushort(handle))
+}
+
 // reconnect пытается восстановить соединение.
 func (a *FocasAdapter) reconnect() error {
 	a.mu.Lock()
@@ -73,8 +115,6 @@ func (a *FocasAdapter) reconnect() error {
 	fmt.Println("Successfully reconnected to FOCAS.")
 	return nil
 }
-
-// D:\vs\go\fanucService\focas\adapter.go
 
 // callWithReconnect — это обертка для выполнения вызовов с возможностью переподключения.
 // При ошибках соединения функция будет бесконечно пытаться переподключиться и повторить операцию.
@@ -128,7 +168,6 @@ func (a *FocasAdapter) Close() {
 }
 
 // GetSystemInfo возвращает системную информацию о станке.
-// ИСПРАВЛЕНО: Просто возвращаем сохраненное значение, без повторного вызова.
 func (a *FocasAdapter) GetSystemInfo() *models.SystemInfo {
 	return a.sysInfo
 }

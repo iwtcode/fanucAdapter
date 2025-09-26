@@ -25,7 +25,6 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 		return []models.AxisInfo{}, nil
 	}
 
-	// ИСПРАВЛЕНО: Используем sysInfo.MaxAxes
 	maxAxes := sysInfo.MaxAxes
 	const odbposSize = 48
 	bufferSize := int(maxAxes) * odbposSize
