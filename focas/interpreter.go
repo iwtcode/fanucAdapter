@@ -9,6 +9,106 @@ import (
 */
 import "C"
 
+const (
+	// TmMode (Тип станка)
+	TmModeTurning = "T" // Токарный
+	TmModeMilling = "M" // Фрезерный
+
+	// ProgramMode (Режим программы)
+	ProgramModeMDI           = "MDI"
+	ProgramModeMemory        = "MEMory"
+	ProgramModeNoSelection   = "No Selection"
+	ProgramModeEdit          = "EDIT"
+	ProgramModeHandle        = "HaNDle"
+	ProgramModeJOG           = "JOG"
+	ProgramModeTeachInJOG    = "Teach in JOG"
+	ProgramModeTeachInHandle = "Teach in HaNDle"
+	ProgramModeIncFeed       = "INC·feed"
+	ProgramModeReference     = "REFerence"
+	ProgramModeRemote        = "ReMoTe"
+
+	// MachineState (Состояние станка)
+	MachineStateReset = "Reset"
+	MachineStateStop  = "STOP"
+	MachineStateHold  = "HOLD"
+	MachineStateStart = "START"
+	MachineStateMSTR  = "MSTR (during retraction and re-positioning of tool retraction and recovery, and operation of JOG MDI)"
+
+	// AxisMovement (Движение осей)
+	AxisMovementNone   = "None"
+	AxisMovementMotion = "Motion"
+	AxisMovementDwell  = "Dwell"
+
+	// MstbStatus
+	MstbStatusFIN   = "FIN"
+	MstbStatusOther = "Other"
+
+	// EmergencyStatus (Статус аварийной остановки)
+	EmergencyStatusNotEmergency = "Not Emergency"
+	EmergencyStatusEmergency    = "EMerGency"
+	EmergencyStatusReset        = "ReSET"
+	EmergencyStatusWait         = "WAIT (FS35i only)"
+
+	// AlarmStatus (Статус тревоги)
+	AlarmStatusOthers          = "Others"
+	AlarmStatusAlarm           = "ALarM"
+	AlarmStatusBatteryLow      = "BATtery Low"
+	AlarmStatusFan             = "FAN (NC or Servo amplifier)"
+	AlarmStatusPSWarning       = "PS Warning"
+	AlarmStatusFSSBWarning     = "FSsB Warning"
+	AlarmStatusInsulateWarning = "INSulate Warning"
+	AlarmStatusEncoderWarning  = "ENCoder Warning"
+	AlarmStatusPMCAlarm        = "PMC Alarm"
+
+	// EditStatus (Общие статусы редактирования)
+	EditStatusNotEditing = "Not Editing"
+	EditStatusEditing    = "EDIT"
+	EditStatusSearch     = "SEARCH"
+	EditStatusOutput     = "OUTPUT"
+	EditStatusInput      = "INPUT"
+	EditStatusCompare    = "COMPARE"
+	EditStatusOffset     = "OFFSET"
+	EditStatusRestart    = "Restart"
+	EditStatusRVRS       = "RVRS"
+	EditStatusRTRY       = "RTRY"
+	EditStatusRVED       = "RVED"
+	EditStatusPTRR       = "PTRR"
+	EditStatusAICC       = "AICC"
+	EditStatusHPCC       = "HPCC"
+	EditStatusNanoHP     = "NANO HP"
+	EditStatus5Axis      = "5-AXIS"
+	EditStatusWZR        = "WZR"
+	EditStatusTCP        = "TCP"
+	EditStatusTWP        = "TWP"
+	EditStatusTCPAndTWP  = "TCP+TWP"
+	EditStatusAPC        = "APC"
+	EditStatusProgCheck  = "PRG-CHK"
+	EditStatusSTCP       = "S-TCP"
+	EditStatusAllSave    = "ALLSAVE"
+	EditStatusNotSave    = "NOTSAVE"
+
+	// EditStatus (Специфичные для токарного станка - T-mode)
+	EditStatusWorkShift = "Work Shift"
+	EditStatusOFSX      = "OFSX"
+	EditStatusOFSZ      = "OFSZ"
+	EditStatusOFSY      = "OFSY"
+	EditStatusTOFS      = "TOFS"
+
+	// EditStatus (Специфичные для фрезерного станка - M-mode)
+	EditStatusLabelSkip  = "Label Skip"
+	EditStatusHandleMode = "HANDLE"
+	EditStatusWorkOffset = "Work Offset"
+	EditStatusMemCheck   = "Memory Check"
+	EditStatusAIAPC      = "AI APC"
+	EditStatusMBLAPC     = "MBL APC"
+	EditStatusAIHPCC     = "AI HPCC"
+	EditStatusLEN        = "LEN"
+	EditStatusRAD        = "RAD"
+
+	// Общее
+	StatusUnknown = "UNKNOWN"
+)
+
 // InterpretMachineState принимает сырую структуру ODBST
 // и преобразует ее в доменную модель UnifiedMachineData.
 func InterpretMachineState(stat *C.ODBST) *models.UnifiedMachineData {
@@ -27,117 +127,117 @@ func InterpretMachineState(stat *C.ODBST) *models.UnifiedMachineData {
 func interpretTmMode(tmmode C.short) string {
 	switch tmmode {
 	case 0:
-		return "T" // Токарный
+		return TmModeTurning
 	case 1:
-		return "M" // Фрезерный
+		return TmModeMilling
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
 func interpretProgramMode(aut C.short) string {
 	switch aut {
 	case 0:
-		return "MDI"
+		return ProgramModeMDI
 	case 1:
-		return "MEMory"
+		return ProgramModeMemory
 	case 2:
-		return "No Selection"
+		return ProgramModeNoSelection
 	case 3:
-		return "EDIT"
+		return ProgramModeEdit
 	case 4:
-		return "HaNDle"
+		return ProgramModeHandle
 	case 5:
-		return "JOG"
+		return ProgramModeJOG
 	case 6:
-		return "Teach in JOG"
+		return ProgramModeTeachInJOG
 	case 7:
-		return "Teach in HaNDle"
+		return ProgramModeTeachInHandle
 	case 8:
-		return "INC·feed"
+		return ProgramModeIncFeed
 	case 9:
-		return "REFerence"
+		return ProgramModeReference
 	case 10:
-		return "ReMoTe"
+		return ProgramModeRemote
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
 func interpretMachineState(run C.short) string {
 	switch run {
 	case 0:
-		return "Reset"
+		return MachineStateReset
 	case 1:
-		return "STOP"
+		return MachineStateStop
 	case 2:
-		return "HOLD"
+		return MachineStateHold
 	case 3:
-		return "START"
+		return MachineStateStart
 	case 4:
-		return "MSTR (during retraction and re-positioning of tool retraction and recovery, and operation of JOG MDI)"
+		return MachineStateMSTR
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
 func interpretAxisMovement(motion C.short) string {
 	switch motion {
 	case 0:
-		return "None"
+		return AxisMovementNone
 	case 1:
-		return "Motion"
+		return AxisMovementMotion
 	case 2:
-		return "Dwell"
+		return AxisMovementDwell
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
 func interpretMstbStatus(mstb C.short) string {
 	if mstb == 1 {
-		return "FIN"
+		return MstbStatusFIN
 	}
-	return "Other"
+	return MstbStatusOther
 }
 
 func interpretEmergencyStatus(emergency C.short) string {
 	switch emergency {
 	case 0:
-		return "Not Emergency"
+		return EmergencyStatusNotEmergency
 	case 1:
-		return "EMerGency"
+		return EmergencyStatusEmergency
 	case 2:
-		return "ReSET"
+		return EmergencyStatusReset
 	case 3:
-		return "WAIT (FS35i only)"
+		return EmergencyStatusWait
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
 func interpretAlarmStatus(alarm C.short) string {
 	switch alarm {
 	case 0:
-		return "Others"
+		return AlarmStatusOthers
 	case 1:
-		return "ALarM"
+		return AlarmStatusAlarm
 	case 2:
-		return "BATtery Low"
+		return AlarmStatusBatteryLow
 	case 3:
-		return "FAN (NC or Servo amplifier)"
+		return AlarmStatusFan
 	case 4:
-		return "PS Warning"
+		return AlarmStatusPSWarning
 	case 5:
-		return "FSsB Warning"
+		return AlarmStatusFSSBWarning
 	case 6:
-		return "INSulate Warning"
+		return AlarmStatusInsulateWarning
 	case 7:
-		return "ENCoder Warning"
+		return AlarmStatusEncoderWarning
 	case 8:
-		return "PMC Alarm"
+		return AlarmStatusPMCAlarm
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
 
@@ -146,146 +246,142 @@ func interpretEditStatus(tmmode C.short, editValue C.short) string {
 	case 0: // T mode (токарный станок)
 		switch editValue {
 		case 0:
-			return "Not Editing"
+			return EditStatusNotEditing
 		case 1:
-			return "EDIT"
+			return EditStatusEditing
 		case 2:
-			return "SEARCH"
+			return EditStatusSearch
 		case 3:
-			return "OUTPUT"
+			return EditStatusOutput
 		case 4:
-			return "INPUT"
+			return EditStatusInput
 		case 5:
-			return "COMPARE"
+			return EditStatusCompare
 		case 6:
-			return "OFFSET"
+			return EditStatusOffset
 		case 7:
-			return "Work Shift"
+			return EditStatusWorkShift
 		case 9:
-			return "Restart"
+			return EditStatusRestart
 		case 10:
-			return "RVRS"
+			return EditStatusRVRS
 		case 11:
-			return "RTRY"
+			return EditStatusRTRY
 		case 12:
-			return "RVED"
+			return EditStatusRVED
 		case 14:
-			return "PTRR"
+			return EditStatusPTRR
 		case 16:
-			return "AICC"
+			return EditStatusAICC
 		case 21:
-			return "HPCC"
+			return EditStatusHPCC
 		case 23:
-			return "NANO HP"
+			return EditStatusNanoHP
 		case 25:
-			return "5-AXIS"
+			return EditStatus5Axis
 		case 26:
-			return "OFSX"
+			return EditStatusOFSX
 		case 27:
-			return "OFSZ"
+			return EditStatusOFSZ
 		case 28:
-			return "WZR"
+			return EditStatusWZR
 		case 29:
-			return "OFSY"
+			return EditStatusOFSY
 		case 31:
-			return "TOFS"
+			return EditStatusTOFS
 		case 39:
-			return "TCP"
+			return EditStatusTCP
 		case 40:
-			return "TWP"
+			return EditStatusTWP
 		case 41:
-			return "TCP+TWP"
-		case 42:
-			return "APC"
+			return EditStatusTCPAndTWP
+		case 42, 44:
+			return EditStatusAPC
 		case 43:
-			return "PRG-CHK"
-		case 44:
-			return "APC"
+			return EditStatusProgCheck
 		case 45:
-			return "S-TCP"
+			return EditStatusSTCP
 		case 59:
-			return "ALLSAVE"
+			return EditStatusAllSave
 		case 60:
-			return "NOTSAVE"
+			return EditStatusNotSave
 		default:
-			return "UNKNOWN"
+			return StatusUnknown
 		}
 	case 1: // M mode (фрезерный станок)
 		switch editValue {
 		case 0:
-			return "Not Editing"
+			return EditStatusNotEditing
 		case 1:
-			return "EDIT"
+			return EditStatusEditing
 		case 2:
-			return "SEARCH"
+			return EditStatusSearch
 		case 3:
-			return "OUTPUT"
+			return EditStatusOutput
 		case 4:
-			return "INPUT"
+			return EditStatusInput
 		case 5:
-			return "COMPARE"
+			return EditStatusCompare
 		case 6:
-			return "Label Skip"
+			return EditStatusLabelSkip
 		case 7:
-			return "Restart"
+			return EditStatusRestart
 		case 8:
-			return "HPCC"
+			return EditStatusHPCC
 		case 9:
-			return "PTRR"
+			return EditStatusPTRR
 		case 10:
-			return "RVRS"
+			return EditStatusRVRS
 		case 11:
-			return "RTRY"
+			return EditStatusRTRY
 		case 12:
-			return "RVED"
+			return EditStatusRVED
 		case 13:
-			return "HANDLE"
+			return EditStatusHandleMode
 		case 14:
-			return "OFFSET"
+			return EditStatusOffset
 		case 15:
-			return "Work Offset"
+			return EditStatusWorkOffset
 		case 16:
-			return "AICC"
+			return EditStatusAICC
 		case 17:
-			return "Memory Check"
+			return EditStatusMemCheck
 		case 21:
-			return "AI APC"
+			return EditStatusAIAPC
 		case 22:
-			return "MBL APC"
+			return EditStatusMBLAPC
 		case 23:
-			return "NANO HP"
+			return EditStatusNanoHP
 		case 24:
-			return "AI HPCC"
+			return EditStatusAIHPCC
 		case 25:
-			return "5-AXIS"
+			return EditStatus5Axis
 		case 26:
-			return "LEN"
+			return EditStatusLEN
 		case 27:
-			return "RAD"
+			return EditStatusRAD
 		case 28:
-			return "WZR"
+			return EditStatusWZR
 		case 39:
-			return "TCP"
+			return EditStatusTCP
 		case 40:
-			return "TWP"
+			return EditStatusTWP
 		case 41:
-			return "TCP+TWP"
-		case 42:
-			return "APC"
+			return EditStatusTCPAndTWP
+		case 42, 44:
+			return EditStatusAPC
 		case 43:
-			return "PRG-CHK"
-		case 44:
-			return "APC"
+			return EditStatusProgCheck
 		case 45:
-			return "S-TCP"
+			return EditStatusSTCP
 		case 59:
-			return "ALLSAVE"
+			return EditStatusAllSave
 		case 60:
-			return "NOTSAVE"
+			return EditStatusNotSave
 		default:
-			return "UNKNOWN"
+			return StatusUnknown
 		}
 	default:
-		return "UNKNOWN"
+		return StatusUnknown
 	}
 }
