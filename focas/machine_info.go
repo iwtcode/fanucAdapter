@@ -44,23 +44,3 @@ func ReadSystemInfo(handle uint16) (*models.SystemInfo, error) {
 
 	return data, nil
 }
-
-// ReadMachineState считывает полное состояние станка.
-func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
-	var stat C.ODBST
-	var rc C.short
-
-	err := a.callWithReconnect(func(handle uint16) (int16, error) {
-		rc = C.go_cnc_statinfo(C.ushort(handle), &stat)
-		if rc != C.EW_OK {
-			return int16(rc), fmt.Errorf("go_cnc_statinfo rc=%d", int16(rc))
-		}
-		return int16(rc), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return InterpretMachineState(&stat), nil
-}

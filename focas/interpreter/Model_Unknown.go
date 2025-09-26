@@ -1,11 +1,13 @@
-package focas
+package interpreter
 
 import (
+	"unsafe"
+
 	"github.com/iwtcode/fanucService/models"
 )
 
 /*
-#include "fwlib32.h"
+#include "../fwlib32.h"
 */
 import "C"
 
@@ -109,9 +111,12 @@ const (
 	StatusUnknown = "UNKNOWN"
 )
 
-// InterpretMachineState принимает сырую структуру ODBST
-// и преобразует ее в доменную модель UnifiedMachineData.
-func InterpretMachineState(stat *C.ODBST) *models.UnifiedMachineData {
+// ModelUnknownInterpreter предоставляет реализацию по умолчанию для интерпретации состояния станка.
+type ModelUnknownInterpreter struct{}
+
+// InterpretMachineState преобразует сырую структуру ODBST в доменную модель UnifiedMachineData.
+func (i *ModelUnknownInterpreter) InterpretMachineState(statPtr unsafe.Pointer) *models.UnifiedMachineData {
+	stat := (*C.ODBST)(statPtr) // Преобразуем указатель обратно в нужный тип
 	return &models.UnifiedMachineData{
 		TmMode:             interpretTmMode(stat.tmmode),
 		ProgramMode:        interpretProgramMode(stat.aut),

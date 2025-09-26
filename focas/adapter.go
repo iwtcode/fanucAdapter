@@ -6,6 +6,7 @@ package focas
 // #cgo windows LDFLAGS: -L../ -lfwlib32
 
 #include <stdlib.h>
+#include <string.h>
 #include "c_helpers.h"
 */
 import "C"
@@ -14,44 +15,56 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 	"unsafe"
 
+	"github.com/iwtcode/fanucService/focas/model"
 	"github.com/iwtcode/fanucService/models"
 )
 
 // FocasAdapter инкапсулирует логику подключения и вызовов к FOCAS API.
-// Он также управляет автоматическим переподключением.
+// Он также управляет автоматическим переподключением и содержит реализации
+// для конкретной модели станка.
 type FocasAdapter struct {
-	ip      string
-	port    uint16
-	timeout int32
-	handle  uint16
-	mu      sync.Mutex
-	sysInfo *models.SystemInfo // ИСПРАВЛЕНО: Храним информацию о системе здесь
+	ip            string
+	port          uint16
+	timeout       int32
+	handle        uint16
+	mu            sync.Mutex
+	sysInfo       *models.SystemInfo
+	interpreter   model.Interpreter   // Интерфейс для интерпретации состояния
+	programReader model.ProgramReader // Интерфейс для чтения программы
 }
 
+// Убедимся, что FocasAdapter удовлетворяет интерфейсу FocasCaller.
+var _ model.FocasCaller = (*FocasAdapter)(nil)
+
 // NewFocasAdapter создает новый экземпляр FocasAdapter и устанавливает соединение.
-func NewFocasAdapter(ip string, port uint16, timeoutMs int32) (*FocasAdapter, error) {
+func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string) (*FocasAdapter, error) {
 	handle, err := Connect(ip, port, timeoutMs)
 	if err != nil {
 		return nil, fmt.Errorf("initial connection failed: %w", err)
 	}
 
-	// Сразу после подключения получаем системную информацию
 	sysInfo, err := ReadSystemInfo(handle)
 	if err != nil {
-		Disconnect(handle) // Закрываем соединение, если не удалось получить базовую информацию
+		Disconnect(handle)
 		return nil, fmt.Errorf("failed to read system info after connecting: %w", err)
 	}
 
+	// Используем фабрику с вручную указанной серией для получения нужных реализаций
+	interpreter, programReader := GetModelImplementations(modelSeries)
+
 	adapter := &FocasAdapter{
-		ip:      ip,
-		port:    port,
-		timeout: timeoutMs,
-		handle:  handle,
-		sysInfo: sysInfo, // ИСПРАВЛЕНО: Сохраняем полученную информацию
+		ip:            ip,
+		port:          port,
+		timeout:       timeoutMs,
+		handle:        handle,
+		sysInfo:       sysInfo,
+		interpreter:   interpreter,
+		programReader: programReader,
 	}
 
 	return adapter, nil
@@ -116,9 +129,8 @@ func (a *FocasAdapter) reconnect() error {
 	return nil
 }
 
-// callWithReconnect — это обертка для выполнения вызовов с возможностью переподключения.
-// При ошибках соединения функция будет бесконечно пытаться переподключиться и повторить операцию.
-func (a *FocasAdapter) callWithReconnect(f func(handle uint16) (int16, error)) error {
+// CallWithReconnect — это обертка для выполнения вызовов с возможностью переподключения.
+func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) error {
 	for {
 		a.mu.Lock()
 		currentHandle := a.handle
@@ -126,32 +138,23 @@ func (a *FocasAdapter) callWithReconnect(f func(handle uint16) (int16, error)) e
 
 		rc, err := f(currentHandle)
 
-		// 1. Если операция прошла успешно, выходим.
 		if err == nil {
 			return nil
 		}
 
-		// 2. Проверяем, является ли ошибка ошибкой соединения.
 		if rc == C.EW_HANDLE || rc == C.EW_SOCKET {
 			fmt.Printf("Connection error detected (rc=%d). Attempting to reconnect...\n", rc)
 
-			// 3. Пытаемся переподключиться.
 			if reconnErr := a.reconnect(); reconnErr != nil {
-				// Если само переподключение не удалось, ждем и пробуем снова.
 				fmt.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
 				time.Sleep(1 * time.Second)
 				continue
 			}
 
-			// 4. После успешного переподключения, переходим на следующую итерацию цикла,
-			// чтобы повторить исходную операцию с новым хендлом.
-			// Добавляем небольшую задержку для стабилизации.
 			time.Sleep(200 * time.Millisecond)
 			continue
 
 		} else {
-			// 5. Если ошибка другого типа (не связана с соединением),
-			// нет смысла переподключаться. Возвращаем ошибку.
 			return err
 		}
 	}
@@ -170,4 +173,76 @@ func (a *FocasAdapter) Close() {
 // GetSystemInfo возвращает системную информацию о станке.
 func (a *FocasAdapter) GetSystemInfo() *models.SystemInfo {
 	return a.sysInfo
+}
+
+// ReadMachineState считывает и интерпретирует состояние станка, используя реализацию для конкретной модели.
+func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
+	var stat C.ODBST
+	var rc C.short
+
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
+		rc = C.go_cnc_statinfo(C.ushort(handle), &stat)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("go_cnc_statinfo rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Делегируем интерпретацию состояния конкретной реализации, передавая указатель
+	return a.interpreter.InterpretMachineState(unsafe.Pointer(&stat)), nil
+}
+
+// GetControlProgram считывает G-код программы, используя реализацию для конкретной модели.
+func (a *FocasAdapter) GetControlProgram() (string, error) {
+	// Делегируем чтение программы конкретной реализации, передавая ей себя
+	// в качестве FocasCaller для выполнения низкоуровневых вызовов.
+	return a.programReader.GetControlProgram(a)
+}
+
+// ReadProgram считывает информацию о текущей выполняемой программе и текущую строку G-кода.
+// Этот метод является частью интерфейса model.FocasCaller.
+func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
+	nameBuf := make([]byte, 64)
+	var onum C.long
+	var rc C.short
+
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
+		rc = C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("cnc_exeprgname rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	progInfo := &models.ProgramInfo{
+		Name:   trimNull(string(nameBuf)),
+		Number: int64(onum),
+	}
+
+	var length C.ushort = 256
+	var blknum C.short
+	dataBuf := make([]byte, length)
+
+	a.mu.Lock()
+	currentHandle := a.handle
+	a.mu.Unlock()
+	rcExec := C.go_cnc_rdexecprog(C.ushort(currentHandle), &length, &blknum, (*C.char)(unsafe.Pointer(&dataBuf[0])))
+
+	if rcExec == C.EW_OK {
+		fullBlock := trimNull(string(dataBuf[:length]))
+		lines := strings.Split(fullBlock, "\n")
+		progInfo.CurrentGCode = lines[0]
+	} else {
+		progInfo.CurrentGCode = ""
+	}
+
+	return progInfo, nil
 }

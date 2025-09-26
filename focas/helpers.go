@@ -26,7 +26,7 @@ func (a *FocasAdapter) readDiagnosis(diagNo int16, axisNo int16, length int16) (
 	var rc C.short
 	var rawType uint16
 
-	err := a.callWithReconnect(func(handle uint16) (int16, error) {
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) { // ИСПРАВЛЕНО
 		rc = C.go_cnc_diagnoss(
 			C.ushort(handle),
 			C.short(diagNo),
@@ -86,7 +86,7 @@ func (a *FocasAdapter) ReadDiagnosisReal(diagNo int16, axisNo int16) (float64, e
 	buffer := make([]byte, 16)
 	var rc C.short
 
-	err := a.callWithReconnect(func(handle uint16) (int16, error) {
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) { // ИСПРАВЛЕНО
 		rc = C.go_cnc_diagnoss(
 			C.ushort(handle),
 			C.short(diagNo),

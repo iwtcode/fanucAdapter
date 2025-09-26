@@ -7,10 +7,11 @@ import (
 
 // Config хранит модель конфигурации приложения
 type Config struct {
-	IP        string
-	Port      uint16
-	TimeoutMs int32
-	LogPath   string
+	IP          string
+	Port        uint16
+	TimeoutMs   int32
+	LogPath     string
+	ModelSeries string
 }
 
 // Load загружает конфигурацию из переменных окружения или устанавливает значения по умолчанию
@@ -37,10 +38,13 @@ func Load() *Config {
 		timeout = 5000
 	}
 
+	modelSeries := os.Getenv("FANUC_MODEL_SERIES")
+
 	return &Config{
-		IP:        ip,
-		Port:      uint16(port),
-		TimeoutMs: int32(timeout),
-		LogPath:   logPath,
+		IP:          ip,
+		Port:        uint16(port),
+		TimeoutMs:   int32(timeout),
+		LogPath:     logPath,
+		ModelSeries: modelSeries,
 	}
 }

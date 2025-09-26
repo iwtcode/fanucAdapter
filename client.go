@@ -32,7 +32,8 @@ func New(cfg *Config) (*Client, error) {
 		return nil, fmt.Errorf("FOCAS startup failed: %w", startupErr)
 	}
 
-	adapter, err := focas.NewFocasAdapter(cfg.IP, cfg.Port, cfg.TimeoutMs)
+	// Передаем указанную серию модели в адаптер
+	adapter, err := focas.NewFocasAdapter(cfg.IP, cfg.Port, cfg.TimeoutMs, cfg.ModelSeries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create focas adapter: %w", err)
 	}

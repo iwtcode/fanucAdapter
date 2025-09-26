@@ -11,19 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// setupTest загружает конфигурацию и создает новый клиент
 func setupTest(t *testing.T) *fanuc.Client {
 	err := godotenv.Load("../.env")
 	if err != nil {
 		log.Printf("Warning: Could not load .env file from ../.env. Using default values or environment variables: %v", err)
 	}
 
-	cfg := fanuc.Load() // Используем fanuc.Load()
+	cfg := fanuc.Load()
 	log.Printf("Конфигурация загружена: IP=%s, Port=%d", cfg.IP, cfg.Port)
 	require.NotNil(t, cfg, "Конфигурация не была загружена")
 
 	log.Printf("Подключение к %s:%d ...", cfg.IP, cfg.Port)
-	c, err := fanuc.New(cfg) // Используем fanuc.New()
+	c, err := fanuc.New(cfg)
 	require.NoError(t, err, "Не удалось создать FOCAS клиент")
 	require.NotNil(t, c, "Клиент не должен быть nil")
 	log.Println("Успешно подключено!")
@@ -31,7 +30,6 @@ func setupTest(t *testing.T) *fanuc.Client {
 	return c
 }
 
-// logAsJSON форматирует данные в JSON и выводит в лог теста
 func logAsJSON(t *testing.T, name string, data interface{}) {
 	t.Helper()
 	jsonData, err := json.MarshalIndent(data, "", "  ")

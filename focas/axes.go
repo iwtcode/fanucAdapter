@@ -32,7 +32,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	axesToRead := C.short(maxAxes)
 	var rc C.short
 
-	err := a.callWithReconnect(func(handle uint16) (int16, error) {
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) { // ИСПРАВЛЕНО
 		rc = C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
 		if rc != C.EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
