@@ -36,7 +36,7 @@ func logAsJSON(t *testing.T, name string, data interface{}) {
 	t.Helper()
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	require.NoError(t, err, "Ошибка маршалинга JSON для %s", name)
-	t.Logf("--- %s ---\n%s", name, string(jsonData))
+	log.Printf("--- %s ---\n%s", name, string(jsonData))
 }
 
 func TestReadSystemInfo(t *testing.T) {
@@ -103,5 +103,5 @@ func TestGetControlProgram(t *testing.T) {
 	err = os.WriteFile(filePath, []byte(gcode), 0644)
 	require.NoError(t, err, "Не удалось записать G-код в файл %s", filePath)
 
-	t.Logf("G-код программы успешно сохранен в %s", filePath)
+	log.Printf("G-код программы успешно сохранен в %s", filePath)
 }

@@ -16,7 +16,7 @@ import (
 	"github.com/iwtcode/fanucService/models"
 )
 
-// ReadSystemInfo считывает и возвращает системную информацию о станке
+// ReadSystemInfo считывает и возвращает системную информацию о станке (не метод адаптера, т.к. используется при создании).
 func ReadSystemInfo(handle uint16) (*models.SystemInfo, error) {
 	var sysInfo C.ODBSYS
 	rc := C.go_cnc_sysinfo(C.ushort(handle), &sysInfo)
@@ -38,19 +38,28 @@ func ReadSystemInfo(handle uint16) (*models.SystemInfo, error) {
 		Series:         trimNull(series),
 		Version:        trimNull(version),
 		Model:          fmt.Sprintf("Series %s Version %s", trimNull(series), trimNull(version)),
-		MaxAxis:        int16(sysInfo.max_axis),
+		MaxAxes:        int16(sysInfo.max_axis),
 		ControlledAxes: int16(controlledAxes),
 	}
 
 	return data, nil
 }
 
-// ReadMachineState считывает полное состояние станка и передает его интерпретатору
-func ReadMachineState(handle uint16) (*models.UnifiedMachineData, error) {
+// ReadMachineState считывает полное состояние станка.
+func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 	var stat C.ODBST
-	rc := C.go_cnc_statinfo(C.ushort(handle), &stat)
-	if rc != C.EW_OK {
-		return nil, fmt.Errorf("go_cnc_statinfo rc=%d", int16(rc))
+	var rc C.short
+
+	err := a.callWithReconnect(func(handle uint16) (int16, error) {
+		rc = C.go_cnc_statinfo(C.ushort(handle), &stat)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("go_cnc_statinfo rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	return InterpretMachineState(&stat), nil

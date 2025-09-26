@@ -15,9 +15,8 @@ var (
 
 // Client является основной точкой входа для взаимодействия с библиотекой.
 type Client struct {
-	handle  uint16
-	sysInfo *models.SystemInfo
-	config  *Config // Используем Config из этого же пакета
+	adapter *focas.FocasAdapter
+	config  *Config
 }
 
 // New создает и возвращает новый экземпляр клиента.
@@ -33,60 +32,50 @@ func New(cfg *Config) (*Client, error) {
 		return nil, fmt.Errorf("FOCAS startup failed: %w", startupErr)
 	}
 
-	handle, err := focas.Connect(cfg.IP, cfg.Port, cfg.TimeoutMs)
+	adapter, err := focas.NewFocasAdapter(cfg.IP, cfg.Port, cfg.TimeoutMs)
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect: %w", err)
-	}
-
-	// Сразу после подключения получаем системную информацию,
-	// так как она нужна для других вызовов (например, для осей).
-	sysInfo, err := focas.ReadSystemInfo(handle)
-	if err != nil {
-		focas.Disconnect(handle) // Закрываем соединение, если не удалось получить базовую информацию
-		return nil, fmt.Errorf("failed to read system info after connecting: %w", err)
+		return nil, fmt.Errorf("failed to create focas adapter: %w", err)
 	}
 
 	return &Client{
-		handle:  handle,
-		sysInfo: sysInfo,
+		adapter: adapter,
 		config:  cfg,
 	}, nil
 }
 
 // Close закрывает соединение со станком.
 func (c *Client) Close() {
-	focas.Disconnect(c.handle)
+	if c.adapter != nil {
+		c.adapter.Close()
+	}
 }
 
 // GetSystemInfo возвращает системную информацию о станке.
 func (c *Client) GetSystemInfo() *models.SystemInfo {
-	return c.sysInfo
+	return c.adapter.GetSystemInfo()
 }
 
 // GetMachineState возвращает текущее состояние станка.
 func (c *Client) GetMachineState() (*models.UnifiedMachineData, error) {
-	return focas.ReadMachineState(c.handle)
+	return c.adapter.ReadMachineState()
 }
 
 // GetAxisData возвращает информацию обо всех управляемых осях.
 func (c *Client) GetAxisData() ([]models.AxisInfo, error) {
-	if c.sysInfo == nil {
-		return nil, fmt.Errorf("system info is not available")
-	}
-	return focas.ReadAxisData(c.handle, c.sysInfo.ControlledAxes, c.sysInfo.MaxAxis)
+	return c.adapter.ReadAxisData()
 }
 
 // GetSpindleData возвращает информацию обо всех шпинделях.
 func (c *Client) GetSpindleData() ([]models.SpindleInfo, error) {
-	return focas.ReadSpindleData(c.handle)
+	return c.adapter.ReadSpindleData()
 }
 
 // GetProgramInfo возвращает информацию о текущей выполняемой программе.
 func (c *Client) GetProgramInfo() (*models.ProgramInfo, error) {
-	return focas.ReadProgram(c.handle)
+	return c.adapter.ReadProgram()
 }
 
 // GetControlProgram возвращает полный G-код текущей выполняемой программы.
 func (c *Client) GetControlProgram() (string, error) {
-	return focas.GetControlProgram(c.handle)
+	return c.adapter.GetControlProgram()
 }

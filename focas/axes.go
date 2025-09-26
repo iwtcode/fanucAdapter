@@ -19,19 +19,30 @@ import (
 )
 
 // ReadAxisData считывает имена, абсолютные позиции и диагностику для всех управляемых осей
-func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]models.AxisInfo, error) {
-	if numAxes <= 0 {
+func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
+	sysInfo := a.GetSystemInfo()
+	if sysInfo == nil || sysInfo.ControlledAxes <= 0 {
 		return []models.AxisInfo{}, nil
 	}
 
+	// ИСПРАВЛЕНО: Используем sysInfo.MaxAxes
+	maxAxes := sysInfo.MaxAxes
 	const odbposSize = 48
 	bufferSize := int(maxAxes) * odbposSize
 	buffer := make([]byte, bufferSize)
 	axesToRead := C.short(maxAxes)
+	var rc C.short
 
-	rc := C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
-	if rc != C.EW_OK {
-		return nil, fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
+	err := a.callWithReconnect(func(handle uint16) (int16, error) {
+		rc = C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
 	if int(axesToRead) > int(maxAxes) {
@@ -65,22 +76,22 @@ func ReadAxisData(handle uint16, numAxes int16, maxAxes int16) ([]models.AxisInf
 		axisNumber := int16(i + 1)
 
 		var diag301Value float64
-		if val, err := ReadDiagnosisReal(handle, 301, axisNumber); err == nil {
+		if val, err := a.ReadDiagnosisReal(301, axisNumber); err == nil {
 			diag301Value = val
 		}
 
 		var servoTempValue int32
-		if val, err := ReadDiagnosisByte(handle, 308, axisNumber); err == nil {
+		if val, err := a.ReadDiagnosisByte(308, axisNumber); err == nil {
 			servoTempValue = val
 		}
 
 		var coderTempValue int32
-		if val, err := ReadDiagnosisByte(handle, 309, axisNumber); err == nil {
+		if val, err := a.ReadDiagnosisByte(309, axisNumber); err == nil {
 			coderTempValue = val
 		}
 
 		var powerConsumptionValue int64
-		if val, err := ReadDiagnosisDoubleWord(handle, 4901, axisNumber); err == nil {
+		if val, err := a.ReadDiagnosisDoubleWord(4901, axisNumber); err == nil {
 			powerConsumptionValue = val
 		}
 

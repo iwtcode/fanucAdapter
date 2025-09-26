@@ -19,7 +19,7 @@ type SystemInfo struct {
 	Model          string `json:"model"`
 	Series         string `json:"series"`
 	Version        string `json:"version"`
-	MaxAxis        int16  `json:"max_axis"`
+	MaxAxes        int16  `json:"max_axes"` // Переименовано
 	ControlledAxes int16  `json:"controlled_axes"`
 }
 
