@@ -57,63 +57,81 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		defer C.go_cnc_upend(C.ushort(handle))
 
 		var sb strings.Builder
-		var buffer C.ODBUP
+		var uploadErr error
+		var lastRc C.short
 
-		const EW_BUSY = -8 // Определяем константу для кода ошибки "занято"
+		const (
+			EW_NODATA = -2 // Нет данных (конец файла)
+			EW_BUSY   = -8 // Контроллер занят
+		)
 
 		iteration := 0
 		for {
+			var buffer C.ODBUP
 			length := C.ushort(256)
 			rcUpload := C.go_cnc_upload(C.ushort(handle), &buffer, &length)
+			lastRc = rcUpload
 
 			log.Printf("Upload iteration %d: rc=%d, length=%d", iteration, rcUpload, length)
 			iteration++
 
-			if length > 0 {
+			isDataRead := rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER
+
+			// Записываем данные в буфер только в случае успешного чтения
+			if isDataRead && length > 0 {
 				goBytes := C.GoBytes(unsafe.Pointer(&buffer.data[0]), C.int(length))
 				sb.Write(goBytes)
 			}
 
-			// Проверяем условия выхода из цикла
+			// --- Логика управления циклом ---
+
+			// 1. Условия успешного завершения
+			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_NODATA {
+				log.Printf("Upload finished successfully with code: %d", rcUpload)
+				break
+			}
+
+			// 2. Условие для повторной попытки
 			if rcUpload == EW_BUSY {
 				log.Printf("CNC is busy (rc=%d). Retrying in 50ms...", rcUpload)
-				time.Sleep(50 * time.Millisecond) // Делаем паузу и повторяем попытку
+				time.Sleep(50 * time.Millisecond)
 				continue
 			}
 
-			if rcUpload != C.EW_OK && rcUpload != C.EW_BUFFER {
-				log.Printf("Exiting upload loop due to unrecoverable error. rc=%d", rcUpload)
-				break
+			// 3. Условие продолжения чтения (буфер был полон, есть еще данные)
+			if rcUpload == C.EW_BUFFER {
+				continue
 			}
 
-			if rcUpload == C.EW_OK && length == 0 {
-				log.Printf("Exiting upload loop successfully. rc=EW_OK and length=0")
+			// 4. Условие неустранимой ошибки (все остальные случаи)
+			if rcUpload != C.EW_OK {
+				log.Printf("Exiting upload loop due to unrecoverable error. rc=%d", rcUpload)
+				uploadErr = fmt.Errorf("cnc_upload failed with rc=%d", int16(rcUpload))
 				break
 			}
 		}
 
+		// Если во время цикла произошла ошибка, немедленно возвращаем ее
+		if uploadErr != nil {
+			return int16(lastRc), uploadErr
+		}
+
+		// Обработка и очистка происходят только после успешной загрузки
 		rawContent := strings.ReplaceAll(sb.String(), "\x00", "")
 		log.Printf("Total raw content size after loop: %d bytes", len(rawContent))
 
-		firstPercent := strings.Index(rawContent, "%")
-		lastPercent := strings.LastIndex(rawContent, "%")
-		log.Printf("Found first '%%' at index %d, last '%%' at index %d", firstPercent, lastPercent)
-
-		if firstPercent != -1 && lastPercent > firstPercent {
-			finalContent = rawContent[:lastPercent+1]
-		} else {
-			finalContent = rawContent
-		}
-
-		finalContent = strings.TrimSpace(finalContent)
-		if !strings.HasPrefix(finalContent, "%") {
-			finalContent = "%\n" + finalContent
-		}
+		// Надежно очищаем и обрамляем программу символами '%'
+		trimmedContent := strings.Trim(rawContent, " \t\n\r%")
+		finalContent = "%\n" + trimmedContent + "\n%"
 
 		log.Printf("Final processed content size: %d bytes", len(finalContent))
 
 		return C.EW_OK, nil // Вся последовательность успешна
 	})
 
-	return finalContent, err
+	if err != nil {
+		return "", err // Если CallWithReconnect вернул ошибку, передаем ее дальше
+	}
+
+	return finalContent, nil
 }
