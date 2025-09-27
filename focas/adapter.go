@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,12 +49,6 @@ func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string
 		return nil, fmt.Errorf("initial connection failed: %w", err)
 	}
 
-	sysInfo, err := ReadSystemInfo(handle)
-	if err != nil {
-		Disconnect(handle)
-		return nil, fmt.Errorf("failed to read system info after connecting: %w", err)
-	}
-
 	// Используем фабрику с вручную указанной серией для получения нужных реализаций
 	interpreter, programReader := GetModelImplementations(modelSeries)
 
@@ -62,10 +57,16 @@ func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string
 		port:          port,
 		timeout:       timeoutMs,
 		handle:        handle,
-		sysInfo:       sysInfo,
 		interpreter:   interpreter,
 		programReader: programReader,
 	}
+
+	sysInfo, err := adapter.ReadSystemInfo()
+	if err != nil {
+		Disconnect(handle)
+		return nil, fmt.Errorf("failed to read system info after connecting: %w", err)
+	}
+	adapter.sysInfo = sysInfo
 
 	return adapter, nil
 }
@@ -108,8 +109,8 @@ func Disconnect(handle uint16) {
 	C.go_cnc_freelibhndl(C.ushort(handle))
 }
 
-// reconnect пытается восстановить соединение.
-func (a *FocasAdapter) reconnect() error {
+// Reconnect пытается восстановить соединение.
+func (a *FocasAdapter) Reconnect() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
@@ -121,7 +122,7 @@ func (a *FocasAdapter) reconnect() error {
 
 	newHandle, err := Connect(a.ip, a.port, a.timeout)
 	if err != nil {
-		return fmt.Errorf("reconnect failed: %w", err)
+		return fmt.Errorf("Reconnect failed: %w", err)
 	}
 
 	a.handle = newHandle
@@ -143,9 +144,9 @@ func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) e
 		}
 
 		if rc == C.EW_HANDLE || rc == C.EW_SOCKET {
-			fmt.Printf("Connection error detected (rc=%d). Attempting to reconnect...\n", rc)
+			fmt.Printf("Connection error detected (rc=%d). Attempting to Reconnect...\n", rc)
 
-			if reconnErr := a.reconnect(); reconnErr != nil {
+			if reconnErr := a.Reconnect(); reconnErr != nil {
 				fmt.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
 				time.Sleep(1 * time.Second)
 				continue
@@ -173,6 +174,44 @@ func (a *FocasAdapter) Close() {
 // GetSystemInfo возвращает системную информацию о станке.
 func (a *FocasAdapter) GetSystemInfo() *models.SystemInfo {
 	return a.sysInfo
+}
+
+// ReadSystemInfo считывает и возвращает системную информацию о станке.
+func (a *FocasAdapter) ReadSystemInfo() (*models.SystemInfo, error) {
+	var sysInfo C.ODBSYS
+	var rc C.short
+
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
+		rc = C.go_cnc_sysinfo(C.ushort(handle), &sysInfo)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("go_cnc_sysinfo rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	series := C.GoStringN(&sysInfo.series[0], C.int(len(sysInfo.series)))
+	version := C.GoStringN(&sysInfo.version[0], C.int(len(sysInfo.version)))
+	axesStr := C.GoStringN(&sysInfo.axes[0], C.int(len(sysInfo.axes)))
+
+	controlledAxes, err := strconv.Atoi(trimNull(axesStr))
+	if err != nil {
+		controlledAxes = 0
+	}
+
+	data := &models.SystemInfo{
+		Manufacturer:   "FANUC",
+		Series:         trimNull(series),
+		Version:        trimNull(version),
+		Model:          fmt.Sprintf("Series %s Version %s", trimNull(series), trimNull(version)),
+		MaxAxes:        int16(sysInfo.max_axis),
+		ControlledAxes: int16(controlledAxes),
+	}
+
+	return data, nil
 }
 
 // ReadMachineState считывает и интерпретирует состояние станка, используя реализацию для конкретной модели.

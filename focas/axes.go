@@ -20,7 +20,7 @@ import (
 
 // ReadAxisData считывает имена, абсолютные позиции и диагностику для всех управляемых осей
 func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
-	sysInfo := a.GetSystemInfo()
+	sysInfo := a.sysInfo
 	if sysInfo == nil || sysInfo.ControlledAxes <= 0 {
 		return []models.AxisInfo{}, nil
 	}
@@ -32,7 +32,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	axesToRead := C.short(maxAxes)
 	var rc C.short
 
-	err := a.CallWithReconnect(func(handle uint16) (int16, error) { // ИСПРАВЛЕНО
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
 		if rc != C.EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
