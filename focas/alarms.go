@@ -97,53 +97,11 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 		alarmDetail := models.AlarmDetail{
 			ErrorCode:            strconv.FormatInt(int64(alarmNumber), 10),
 			ErrorMessage:         message,
-			ErrorTypeDescription: getAlarmTypeDescription(alarmType),
+			ErrorTypeDescription: interpreter.InterpretAlarmType(alarmType),
 		}
 		alarms = append(alarms, alarmDetail)
 	}
 
 	log.Printf("[ReadAlarms] Парсинг завершен. Возвращаю %d ошибок.", len(alarms))
 	return alarms, nil
-}
-
-// getAlarmTypeDescription преобразует код типа ошибки в человекочитаемое описание.
-func getAlarmTypeDescription(alarmType int16) string {
-	switch alarmType {
-	case 0:
-		return interpreter.AlarmTypeSW
-	case 1:
-		return interpreter.AlarmTypePW
-	case 2:
-		return interpreter.AlarmTypeIO
-	case 3:
-		return interpreter.AlarmTypePS
-	case 4:
-		return interpreter.AlarmTypeOT
-	case 5:
-		return interpreter.AlarmTypeOH
-	case 6:
-		return interpreter.AlarmTypeSV
-	case 7:
-		return interpreter.AlarmTypeSR
-	case 8:
-		return interpreter.AlarmTypeMC
-	case 9:
-		return interpreter.AlarmTypeSP
-	case 10:
-		return interpreter.AlarmTypeDS
-	case 11:
-		return interpreter.AlarmTypeIE
-	case 12:
-		return interpreter.AlarmTypeBG
-	case 13:
-		return interpreter.AlarmTypeSN
-	case 14:
-		return interpreter.AlarmReserved
-	case 15:
-		return interpreter.AlarmTypeEX
-	case 19:
-		return interpreter.AlarmTypePC
-	default:
-		return interpreter.StatusUnknown
-	}
 }

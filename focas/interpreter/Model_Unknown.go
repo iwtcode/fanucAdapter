@@ -410,3 +410,45 @@ func interpretEditStatus(tmmode C.short, editValue C.short) string {
 		return StatusUnknown
 	}
 }
+
+// InterpretAlarmType преобразует код типа ошибки в человекочитаемое описание.
+func InterpretAlarmType(alarmType int16) string {
+	switch alarmType {
+	case 0:
+		return AlarmTypeSW
+	case 1:
+		return AlarmTypePW
+	case 2:
+		return AlarmTypeIO
+	case 3:
+		return AlarmTypePS
+	case 4:
+		return AlarmTypeOT
+	case 5:
+		return AlarmTypeOH
+	case 6:
+		return AlarmTypeSV
+	case 7:
+		return AlarmTypeSR
+	case 8:
+		return AlarmTypeMC
+	case 9:
+		return AlarmTypeSP
+	case 10:
+		return AlarmTypeDS
+	case 11:
+		return AlarmTypeIE
+	case 12:
+		return AlarmTypeBG
+	case 13:
+		return AlarmTypeSN
+	case 14:
+		return AlarmReserved
+	case 15:
+		return AlarmTypeEX
+	case 19:
+		return AlarmTypePC
+	default:
+		return StatusUnknown
+	}
+}
