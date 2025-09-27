@@ -117,7 +117,7 @@ func (a *FocasAdapter) Reconnect() error {
 	if a.handle != 0 {
 		Disconnect(a.handle)
 		a.handle = 0
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	newHandle, err := Connect(a.ip, a.port, a.timeout)
@@ -148,11 +148,10 @@ func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) e
 
 			if reconnErr := a.Reconnect(); reconnErr != nil {
 				fmt.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
-				time.Sleep(1 * time.Second)
+				time.Sleep(500 * time.Millisecond)
 				continue
 			}
 
-			time.Sleep(200 * time.Millisecond)
 			continue
 
 		} else {
