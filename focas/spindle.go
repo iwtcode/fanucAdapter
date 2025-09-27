@@ -26,7 +26,7 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 	buffer := make([]byte, bufferSize)
 	var rc C.short
 
-	err := a.CallWithReconnect(func(handle uint16) (int16, error) { // ИСПРАВЛЕНО
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_rdspmeter(C.ushort(handle), -1, &numSpindles, (*C.ODBSPLOAD)(unsafe.Pointer(&buffer[0])))
 		if rc != C.EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdspmeter failed: rc=%d", int16(rc))
@@ -43,10 +43,13 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 	}
 
 	var overrideData C.ODBSPN
-	a.mu.Lock()
-	currentHandle := a.handle
-	a.mu.Unlock()
-	rcOverride := C.go_cnc_rdspload(C.ushort(currentHandle), -1, &overrideData) // Этот вызов можно не оборачивать, если он не критичен
+	errOverride := a.CallWithReconnect(func(handle uint16) (int16, error) {
+		rc := C.go_cnc_rdspload(C.ushort(handle), -1, &overrideData)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("go_cnc_rdspload failed: rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
 
 	spindleInfos := make([]models.SpindleInfo, 0, numSpindles)
 
@@ -65,7 +68,7 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 		speed := int32(math.Round(correctedSpeed))
 
 		var overridePercent int16
-		if rcOverride == C.EW_OK && i < len(overrideData.data) {
+		if errOverride == nil && i < len(overrideData.data) {
 			rawOverride := overrideData.data[i]
 			const maxOverrideValue = 16383.0
 			calculatedPercent := (float64(rawOverride) / maxOverrideValue) * 100.0
