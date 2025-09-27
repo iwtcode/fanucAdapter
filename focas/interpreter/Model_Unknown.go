@@ -107,6 +107,25 @@ const (
 	EditStatusLEN        = "LEN"
 	EditStatusRAD        = "RAD"
 
+	// Alarm Types (Типы ошибок)
+	AlarmTypeSW   = "SW – Parameter switch on"
+	AlarmTypePW   = "PW – Power off parameter set"
+	AlarmTypeIO   = "IO – I/O error"
+	AlarmTypePS   = "PS – Foreground P/S"
+	AlarmTypeOT   = "OT – Overtravel / External data"
+	AlarmTypeOH   = "OH – Overheat alarm"
+	AlarmTypeSV   = "SV – Servo alarm"
+	AlarmTypeSR   = "SR – Data I/O error"
+	AlarmTypeMC   = "MC – Macro alarm"
+	AlarmTypeSP   = "SP – Spindle alarm"
+	AlarmTypeDS   = "DS – Other alarm"
+	AlarmTypeIE   = "IE – Malfunction prevention function"
+	AlarmTypeBG   = "BG – Background P/S"
+	AlarmTypeSN   = "SN – Synchronization error"
+	AlarmTypeEX   = "EX – External alarm message"
+	AlarmTypePC   = "PC - PMC Error" // Добавлено для полноты
+	AlarmReserved = "(Reserved)"
+
 	// Общее
 	StatusUnknown = "UNKNOWN"
 )
@@ -126,6 +145,7 @@ func (i *ModelUnknownInterpreter) InterpretMachineState(statPtr unsafe.Pointer) 
 		EmergencyStatus:    interpretEmergencyStatus(stat.emergency),
 		AlarmStatus:        interpretAlarmStatus(stat.alarm),
 		EditStatus:         interpretEditStatus(stat.tmmode, stat.edit),
+		Alarms:             []models.AlarmDetail{}, // Инициализируем пустым слайсом
 	}
 }
 

@@ -80,3 +80,8 @@ func (c *Client) GetProgramInfo() (*models.ProgramInfo, error) {
 func (c *Client) GetControlProgram() (string, error) {
 	return c.adapter.GetControlProgram()
 }
+
+// GetAlarms возвращает список активных ошибок на станке.
+func (c *Client) GetAlarms() ([]models.AlarmDetail, error) {
+	return c.adapter.ReadAlarms()
+}

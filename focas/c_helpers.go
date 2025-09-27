@@ -97,5 +97,9 @@ short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out) {
     return cnc_rdspload(h, type, load_out);
 }
 
+short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg) {
+    return cnc_rdalmmsg(h, type, num, msg);
+}
+
 */
 import "C"

@@ -231,7 +231,18 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 	}
 
 	// Делегируем интерпретацию состояния конкретной реализации, передавая указатель
-	return a.interpreter.InterpretMachineState(unsafe.Pointer(&stat)), nil
+	machineData := a.interpreter.InterpretMachineState(unsafe.Pointer(&stat))
+
+	// Считываем и добавляем информацию об ошибках
+	alarms, err := a.ReadAlarms()
+	if err != nil {
+		// Можно либо вернуть ошибку, либо просто залогировать и продолжить
+		fmt.Printf("Warning: could not read alarms: %v\n", err)
+	} else {
+		machineData.Alarms = alarms
+	}
+
+	return machineData, nil
 }
 
 // GetControlProgram считывает G-код программы, используя реализацию для конкретной модели.

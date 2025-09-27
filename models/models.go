@@ -34,16 +34,24 @@ type AxisInfo struct {
 	Diag301          float64 `json:"diag_301"`
 }
 
+// AlarmDetail содержит детальную информацию об одной ошибке
+type AlarmDetail struct {
+	ErrorCode            string `json:"error_code"`
+	ErrorTypeDescription string `json:"error_type_description"`
+	ErrorMessage         string `json:"error_message"`
+}
+
 // UnifiedMachineData содержит полное унифицированное состояние станка
 type UnifiedMachineData struct {
-	TmMode             string `json:"tm_mode"`
-	ProgramMode        string `json:"program_mode"`
-	MachineState       string `json:"machine_state"`
-	AxisMovementStatus string `json:"axis_movement_status"`
-	MstbStatus         string `json:"mstb_status"`
-	EmergencyStatus    string `json:"emergency_status"`
-	AlarmStatus        string `json:"alarm_status"`
-	EditStatus         string `json:"edit_status"`
+	TmMode             string        `json:"tm_mode"`
+	ProgramMode        string        `json:"program_mode"`
+	MachineState       string        `json:"machine_state"`
+	AxisMovementStatus string        `json:"axis_movement_status"`
+	MstbStatus         string        `json:"mstb_status"`
+	EmergencyStatus    string        `json:"emergency_status"`
+	AlarmStatus        string        `json:"alarm_status"`
+	EditStatus         string        `json:"edit_status"`
+	Alarms             []AlarmDetail `json:"alarms"` // Добавлено поле для ошибок
 }
 
 // SpindleInfo содержит информацию о шпинделе

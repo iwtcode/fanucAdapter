@@ -85,7 +85,18 @@ func TestReadMachineState(t *testing.T) {
 	state, err := c.GetMachineState()
 	require.NoError(t, err, "Не удалось прочитать состояние станка")
 
-	logAsJSON(t, "MachineState", state)
+	logAsJSON(t, "MachineState (with Alarms)", state)
+}
+
+func TestReadAlarms(t *testing.T) {
+	c := setupTest(t)
+
+	defer c.Close()
+
+	alarms, err := c.GetAlarms()
+	require.NoError(t, err, "Не удалось прочитать ошибки")
+
+	logAsJSON(t, "Alarms (standalone)", alarms)
 }
 
 func TestGetControlProgram(t *testing.T) {
