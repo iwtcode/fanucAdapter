@@ -1,8 +1,10 @@
 package fanuc
 
 import (
+	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/iwtcode/fanucService/focas"
 	"github.com/iwtcode/fanucService/models"
@@ -89,4 +91,17 @@ func (c *Client) GetAlarms() ([]models.AlarmDetail, error) {
 // GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
 func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
 	return c.adapter.AggregateAllData()
+}
+
+// PollingResult является оберткой для данных, возвращаемых каналом опроса.
+// Это реэкспорт типа из пакета focas для более простого использования клиентом.
+type PollingResult = focas.PollingResult
+
+// Polling запускает фоновый процесс, который собирает все данные станка с заданным интервалом.
+// Он возвращает канал только для чтения, в который отправляются результаты.
+// Опрос останавливается при отмене предоставленного контекста.
+// Примечание: каждый сбор данных выполняется в отдельной горутине, поэтому они могут выполняться одновременно,
+// если интервал короче, чем время, необходимое для сбора данных.
+func (c *Client) Polling(ctx context.Context, interval time.Duration) <-chan PollingResult {
+	return c.adapter.StartPolling(ctx, interval)
 }
