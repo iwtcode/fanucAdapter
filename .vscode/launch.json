@@ -19,7 +19,8 @@
             "mode": "test",
             "program": "${file}",
             "args": [
-                "-test.v"
+                "-test.v",
+                "-test.count=1"
             ],
             "env": {
                 "LD_LIBRARY_PATH": "${workspaceFolder}"

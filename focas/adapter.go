@@ -259,6 +259,7 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 	var onum C.long
 	var rc C.short
 
+	// Получаем имя и номер программы
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
 		if rc != C.EW_OK {
@@ -276,20 +277,42 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 		Number: int64(onum),
 	}
 
-	var length C.ushort = 256
-	var blknum C.short
-	dataBuf := make([]byte, length)
+	// Получаем текущую строку G-кода с повторными попытками
+	const (
+		maxBusyRetries = 10
+		busyRetryDelay = 50 * time.Millisecond
+		EW_BUSY        = -8
+	)
 
-	a.mu.Lock()
-	currentHandle := a.handle
-	a.mu.Unlock()
-	rcExec := C.go_cnc_rdexecprog(C.ushort(currentHandle), &length, &blknum, (*C.char)(unsafe.Pointer(&dataBuf[0])))
+	err = a.CallWithReconnect(func(handle uint16) (int16, error) {
+		var rc C.short
+		for i := 0; i < maxBusyRetries; i++ {
+			var length C.ushort = 256
+			var blknum C.short
+			dataBuf := make([]byte, length)
 
-	if rcExec == C.EW_OK {
-		fullBlock := trimNull(string(dataBuf[:length]))
-		lines := strings.Split(fullBlock, "\n")
-		progInfo.CurrentGCode = lines[0]
-	} else {
+			rc = C.go_cnc_rdexecprog(C.ushort(handle), &length, &blknum, (*C.char)(unsafe.Pointer(&dataBuf[0])))
+
+			if rc == C.EW_OK {
+				fullBlock := trimNull(string(dataBuf[:length]))
+				lines := strings.Split(fullBlock, "\n")
+				progInfo.CurrentGCode = lines[0]
+				return int16(rc), nil // ИСПРАВЛЕНО
+			}
+
+			if rc == EW_BUSY {
+				time.Sleep(busyRetryDelay)
+				continue // Контроллер занят, повторяем
+			}
+
+			// Любая другая ошибка
+			return int16(rc), fmt.Errorf("cnc_rdexecprog failed with rc=%d", int16(rc)) // ИСПРАВЛЕНО
+		}
+		// Если вышли из цикла
+		return int16(rc), fmt.Errorf("cnc_rdexecprog timed out after %d retries (last rc=%d)", maxBusyRetries, int16(rc)) // ИСПРАВЛЕНО
+	})
+
+	if err != nil {
 		progInfo.CurrentGCode = ""
 	}
 

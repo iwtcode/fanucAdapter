@@ -85,3 +85,8 @@ func (c *Client) GetControlProgram() (string, error) {
 func (c *Client) GetAlarms() ([]models.AlarmDetail, error) {
 	return c.adapter.ReadAlarms()
 }
+
+// GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
+func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
+	return c.adapter.AggregateAllData()
+}

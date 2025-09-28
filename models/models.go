@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // ProgramInfo содержит информацию о выполняемой программе
 type ProgramInfo struct {
 	Name         string `json:"name"`
@@ -62,4 +64,32 @@ type SpindleInfo struct {
 	OverridePercent  int16   `json:"override_percent"`
 	PowerConsumption int32   `json:"power_consumption"`
 	Diag411Value     int32   `json:"diag_411_value"`
+}
+
+// CurrentProgramInfo содержит упрощенную информацию о текущей программе для AggregatedData.
+type CurrentProgramInfo struct {
+	ProgramName   string `json:"program_name"`
+	ProgramNumber int64  `json:"program_number"`
+	GCodeLine     string `json:"g_code_line"`
+}
+
+// AggregatedData содержит полную сводку данных о станке.
+type AggregatedData struct {
+	MachineID          string             `json:"machine_id"`
+	Timestamp          time.Time          `json:"timestamp"`
+	IsEnabled          bool               `json:"is_enabled"`
+	IsEmergency        bool               `json:"is_emergency"`
+	MachineState       string             `json:"machine_state"`
+	ProgramMode        string             `json:"program_mode"`
+	TmMode             string             `json:"tm_mode"`
+	AxisMovementStatus string             `json:"axis_movement_status"`
+	MstbStatus         string             `json:"mstb_status"`
+	EmergencyStatus    string             `json:"emergency_status"`
+	AlarmStatus        string             `json:"alarm_status"`
+	EditStatus         string             `json:"edit_status"`
+	AxisInfos          []AxisInfo         `json:"axis_infos"`
+	HasAlarms          bool               `json:"has_alarms"`
+	Alarms             []AlarmDetail      `json:"alarms"`
+	CurrentProgram     CurrentProgramInfo `json:"current_program"`
+	SpindleInfos       []SpindleInfo      `json:"spindle_infos"`
 }

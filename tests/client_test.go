@@ -90,7 +90,6 @@ func TestReadMachineState(t *testing.T) {
 
 func TestReadAlarms(t *testing.T) {
 	c := setupTest(t)
-
 	defer c.Close()
 
 	alarms, err := c.GetAlarms()
@@ -113,4 +112,15 @@ func TestGetControlProgram(t *testing.T) {
 	require.NoError(t, err, "Не удалось записать G-код в файл %s", filePath)
 
 	log.Printf("G-код программы успешно сохранен в %s", filePath)
+}
+
+// Новый тест для агрегированных данных
+func TestGetCurrentData(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	data, err := c.GetCurrentData()
+	require.NoError(t, err, "Не удалось получить агрегированные данные")
+
+	logAsJSON(t, "Aggregated Current Data", data)
 }
