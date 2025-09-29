@@ -88,6 +88,11 @@ func (c *Client) GetAlarms() ([]models.AlarmDetail, error) {
 	return c.adapter.ReadAlarms()
 }
 
+// GetFeedData возвращает информацию о скорости подачи и коррекции.
+func (c *Client) GetFeedData() (*models.FeedInfo, error) {
+	return c.adapter.ReadFeedData()
+}
+
 // GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
 func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
 	return c.adapter.AggregateAllData()

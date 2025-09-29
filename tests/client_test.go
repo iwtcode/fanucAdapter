@@ -101,6 +101,16 @@ func TestReadAlarms(t *testing.T) {
 	logAsJSON(t, "Alarms (standalone)", alarms)
 }
 
+func TestReadFeedData(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	feedInfo, err := c.GetFeedData()
+	require.NoError(t, err, "Не удалось прочитать информацию о подаче")
+
+	logAsJSON(t, "FeedData", feedInfo)
+}
+
 func TestGetControlProgram(t *testing.T) {
 	c := setupTest(t)
 	defer c.Close()

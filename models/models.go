@@ -73,6 +73,12 @@ type CurrentProgramInfo struct {
 	GCodeLine     string `json:"g_code_line"`
 }
 
+// FeedInfo содержит информацию о скорости подачи и коррекции.
+type FeedInfo struct {
+	ActualFeedRate int32 `json:"actual_feed_rate"`
+	FeedOverride   int16 `json:"feed_override"`
+}
+
 // AggregatedData содержит полную сводку данных о станке.
 type AggregatedData struct {
 	MachineID          string             `json:"machine_id"`
@@ -92,4 +98,5 @@ type AggregatedData struct {
 	Alarms             []AlarmDetail      `json:"alarms"`
 	CurrentProgram     CurrentProgramInfo `json:"current_program"`
 	SpindleInfos       []SpindleInfo      `json:"spindle_infos"`
+	FeedInfo           *FeedInfo          `json:"feed_info"`
 }

@@ -101,5 +101,9 @@ short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg) 
     return cnc_rdalmmsg(h, type, num, msg);
 }
 
+short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length, IODBPSD* param_out) {
+    return cnc_rdparam(h, prm_no, axis_no, length, param_out);
+}
+
 */
 import "C"

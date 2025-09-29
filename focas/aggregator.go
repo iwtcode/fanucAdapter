@@ -20,6 +20,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 	var axisData []models.AxisInfo
 	var spindleData []models.SpindleInfo
 	var programInfo *models.ProgramInfo
+	var feedInfo *models.FeedInfo
 
 	// 1. Получение состояния станка
 	wg.Add(1)
@@ -73,6 +74,19 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		}
 	}()
 
+	// 5. Получение данных о подаче
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		feedInfo, err = a.ReadFeedData()
+		if err != nil {
+			mu.Lock()
+			errs = append(errs, fmt.Errorf("failed to read feed data: %w", err))
+			mu.Unlock()
+		}
+	}()
+
 	// Ожидаем завершения всех горутин
 	wg.Wait()
 
@@ -114,6 +128,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		AxisInfos:          axisData,
 		SpindleInfos:       spindleData,
 		CurrentProgram:     currentProg,
+		FeedInfo:           feedInfo,
 	}
 
 	return data, nil

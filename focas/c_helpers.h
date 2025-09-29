@@ -23,6 +23,7 @@ short go_cnc_diagnoss(unsigned short h, short diag_no, short axis_num, short len
 short go_cnc_rdspmeter(unsigned short h, short type, short* num, ODBSPLOAD* meter_out);
 short go_cnc_rdspeed(unsigned short h, short type, ODBSPEED* speed_out);
 short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out);
-short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg); // Добавлено
+short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg);
+short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length, IODBPSD* param_out);
 
 #endif // C_HELPERS_H
