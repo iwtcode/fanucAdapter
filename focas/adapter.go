@@ -13,6 +13,7 @@ import "C"
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -126,7 +127,7 @@ func (a *FocasAdapter) Reconnect() error {
 	}
 
 	a.handle = newHandle
-	fmt.Println("Successfully reconnected to FOCAS.")
+	log.Println("Successfully reconnected to FOCAS.")
 	return nil
 }
 
@@ -144,10 +145,10 @@ func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) e
 		}
 
 		if rc == C.EW_HANDLE || rc == C.EW_SOCKET {
-			fmt.Printf("Connection error detected (rc=%d). Attempting to Reconnect...\n", rc)
+			log.Printf("Connection error detected (rc=%d). Attempting to Reconnect...\n", rc)
 
 			if reconnErr := a.Reconnect(); reconnErr != nil {
-				fmt.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
+				log.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
 				time.Sleep(500 * time.Millisecond)
 				continue
 			}
@@ -237,7 +238,7 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 	alarms, err := a.ReadAlarms()
 	if err != nil {
 		// Можно либо вернуть ошибку, либо просто залогировать и продолжить
-		fmt.Printf("Warning: could not read alarms: %v\n", err)
+		log.Printf("Warning: could not read alarms: %v\n", err)
 	} else {
 		machineData.Alarms = alarms
 	}
