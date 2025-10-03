@@ -2,101 +2,41 @@ package focas
 
 import (
 	"fmt"
-	"strings"
-	"sync"
 	"time"
 
 	"github.com/iwtcode/fanucService/models"
 )
 
-// AggregateAllData собирает все доступные данные со станка асинхронно.
+// AggregateAllData собирает все доступные данные со станка последовательно.
 func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
-	var wg sync.WaitGroup
-	var errs []error
-	var mu sync.Mutex // для безопасной записи ошибок из горутин
-
-	// Переменные для хранения результатов
-	var machineState *models.UnifiedMachineData
-	var axisData []models.AxisInfo
-	var spindleData []models.SpindleInfo
-	var programInfo *models.ProgramInfo
-	var feedInfo *models.FeedInfo
-
 	// 1. Получение состояния станка
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		machineState, err = a.ReadMachineState()
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("failed to read machine state: %w", err))
-			mu.Unlock()
-		}
-	}()
+	machineState, err := a.ReadMachineState()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read machine state: %w", err)
+	}
 
 	// 2. Получение данных по осям
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		axisData, err = a.ReadAxisData()
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("failed to read axis data: %w", err))
-			mu.Unlock()
-		}
-	}()
+	axisData, err := a.ReadAxisData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read axis data: %w", err)
+	}
 
 	// 3. Получение данных по шпинделям
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		spindleData, err = a.ReadSpindleData()
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("failed to read spindle data: %w", err))
-			mu.Unlock()
-		}
-	}()
+	spindleData, err := a.ReadSpindleData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read spindle data: %w", err)
+	}
 
 	// 4. Получение информации о программе
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		programInfo, err = a.ReadProgram()
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("failed to read program info: %w", err))
-			mu.Unlock()
-		}
-	}()
+	programInfo, err := a.ReadProgram()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read program info: %w", err)
+	}
 
 	// 5. Получение данных о подаче
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		feedInfo, err = a.ReadFeedData()
-		if err != nil {
-			mu.Lock()
-			errs = append(errs, fmt.Errorf("failed to read feed data: %w", err))
-			mu.Unlock()
-		}
-	}()
-
-	// Ожидаем завершения всех горутин
-	wg.Wait()
-
-	// Проверяем, были ли ошибки
-	if len(errs) > 0 {
-		var errorStrings []string
-		for _, e := range errs {
-			errorStrings = append(errorStrings, e.Error())
-		}
-		return nil, fmt.Errorf("aggregation failed with multiple errors: %s", strings.Join(errorStrings, "; "))
+	feedInfo, err := a.ReadFeedData()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read feed data: %w", err)
 	}
 
 	// Сборка финальной структуры
