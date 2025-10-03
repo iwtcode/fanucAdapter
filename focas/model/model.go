@@ -23,6 +23,20 @@ const (
 	Model_32
 )
 
+// Константы для строковых представлений серий моделей ЧПУ
+const (
+	Series0i  = "0I"
+	Series15  = "15"
+	Series15i = "15I"
+	Series16  = "16"
+	Series16i = "16I"
+	Series18i = "18I"
+	Series21  = "21"
+	Series30  = "30"
+	Series31  = "31"
+	Series32  = "32"
+)
+
 // Interpreter определяет интерфейс для интерпретации состояния станка в зависимости от модели.
 type Interpreter interface {
 	InterpretMachineState(stat unsafe.Pointer) *models.UnifiedMachineData
