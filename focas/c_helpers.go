@@ -113,5 +113,9 @@ short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length
     return cnc_rdparam(h, prm_no, axis_no, length, param_out);
 }
 
+short go_cnc_actf(unsigned short h, ODBACT* actualfeed) {
+    return cnc_actf(h, actualfeed);
+}
+
 */
 import "C"

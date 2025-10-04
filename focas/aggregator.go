@@ -39,6 +39,13 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		return nil, fmt.Errorf("failed to read feed data: %w", err)
 	}
 
+	// 6. Получение данных о контурной подаче
+	contourFeedRate, err := a.ReadContourFeedRate()
+	if err != nil {
+		// Вместо того чтобы прерывать весь сбор, просто логируем ошибку
+		fmt.Printf("Warning: failed to read contour feed rate: %v\n", err)
+	}
+
 	// Сборка финальной структуры
 	isEmergency := machineState.EmergencyStatus != "Not Emergency"
 	hasAlarms := len(machineState.Alarms) > 0
@@ -68,6 +75,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		AxisInfos:          axisData,
 		SpindleInfos:       spindleData,
 		CurrentProgram:     currentProg,
+		ContourFeedRate:    contourFeedRate,
 		FeedInfo:           feedInfo,
 	}
 

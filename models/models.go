@@ -21,7 +21,7 @@ type SystemInfo struct {
 	Model          string `json:"model"`
 	Series         string `json:"series"`
 	Version        string `json:"version"`
-	MaxAxes        int16  `json:"max_axes"` // Переименовано
+	MaxAxes        int16  `json:"max_axes"`
 	ControlledAxes int16  `json:"controlled_axes"`
 }
 
@@ -53,7 +53,7 @@ type UnifiedMachineData struct {
 	EmergencyStatus    string        `json:"emergency_status"`
 	AlarmStatus        string        `json:"alarm_status"`
 	EditStatus         string        `json:"edit_status"`
-	Alarms             []AlarmDetail `json:"alarms"` // Добавлено поле для ошибок
+	Alarms             []AlarmDetail `json:"alarms"`
 }
 
 // SpindleInfo содержит информацию о шпинделе
@@ -98,5 +98,6 @@ type AggregatedData struct {
 	Alarms             []AlarmDetail      `json:"alarms"`
 	CurrentProgram     CurrentProgramInfo `json:"current_program"`
 	SpindleInfos       []SpindleInfo      `json:"spindle_infos"`
+	ContourFeedRate    int32              `json:"contour_feed_rate"`
 	FeedInfo           *FeedInfo          `json:"feed_info"`
 }

@@ -111,6 +111,16 @@ func TestReadFeedData(t *testing.T) {
 	logAsJSON(t, "FeedData", feedInfo)
 }
 
+func TestReadContourFeedRate(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	contourFeedRate, err := c.GetContourFeedRate()
+	require.NoError(t, err, "Не удалось прочитать информацию о контурной подаче")
+
+	logAsJSON(t, "ContourFeedRate", contourFeedRate)
+}
+
 func TestGetControlProgram(t *testing.T) {
 	c := setupTest(t)
 	defer c.Close()

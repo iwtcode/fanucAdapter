@@ -93,6 +93,11 @@ func (c *Client) GetFeedData() (*models.FeedInfo, error) {
 	return c.adapter.ReadFeedData()
 }
 
+// GetContourFeedRate возвращает фактическую скорость подачи по контуру.
+func (c *Client) GetContourFeedRate() (int32, error) {
+	return c.adapter.ReadContourFeedRate()
+}
+
 // GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
 func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
 	return c.adapter.AggregateAllData()
