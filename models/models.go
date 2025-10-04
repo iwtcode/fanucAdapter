@@ -99,5 +99,6 @@ type AggregatedData struct {
 	CurrentProgram     CurrentProgramInfo `json:"current_program"`
 	SpindleInfos       []SpindleInfo      `json:"spindle_infos"`
 	ContourFeedRate    int32              `json:"contour_feed_rate"`
-	FeedInfo           *FeedInfo          `json:"feed_info"`
+	ActualFeedRate     int32              `json:"actual_feed_rate"`
+	FeedOverride       int16              `json:"feed_override"`
 }

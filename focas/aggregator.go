@@ -42,8 +42,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 	// 6. Получение данных о контурной подаче
 	contourFeedRate, err := a.ReadContourFeedRate()
 	if err != nil {
-		// Вместо того чтобы прерывать весь сбор, просто логируем ошибку
-		fmt.Printf("Warning: failed to read contour feed rate: %v\n", err)
+		return nil, fmt.Errorf("failed to read contour feed rate: %w", err)
 	}
 
 	// Сборка финальной структуры
@@ -76,7 +75,8 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		SpindleInfos:       spindleData,
 		CurrentProgram:     currentProg,
 		ContourFeedRate:    contourFeedRate,
-		FeedInfo:           feedInfo,
+		ActualFeedRate:     feedInfo.ActualFeedRate,
+		FeedOverride:       feedInfo.FeedOverride,
 	}
 
 	return data, nil
