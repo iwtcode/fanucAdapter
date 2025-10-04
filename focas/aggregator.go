@@ -2,6 +2,7 @@ package focas
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/iwtcode/fanucService/models"
@@ -45,6 +46,13 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		return nil, fmt.Errorf("failed to read contour feed rate: %w", err)
 	}
 
+	// 7. Получение данных о коррекции JOG
+	jogOverride, err := a.ReadJogOverride()
+	if err != nil {
+		log.Printf("Warning: failed to read jog override: %v", err)
+		jogOverride = 0 // Устанавливаем значение по умолчанию в случае ошибки
+	}
+
 	// Сборка финальной структуры
 	isEmergency := machineState.EmergencyStatus != "Not Emergency"
 	hasAlarms := len(machineState.Alarms) > 0
@@ -77,6 +85,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		ContourFeedRate:    contourFeedRate,
 		ActualFeedRate:     feedInfo.ActualFeedRate,
 		FeedOverride:       feedInfo.FeedOverride,
+		JogOverride:        jogOverride,
 	}
 
 	return data, nil

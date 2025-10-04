@@ -131,6 +131,16 @@ func TestReadFeedOverride(t *testing.T) {
 	logAsJSON(t, "FeedOverride", feedOverride)
 }
 
+func TestReadJogOverride(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	jogOverride, err := c.GetJogOverride()
+	require.NoError(t, err, "Не удалось прочитать информацию о коррекции JOG")
+
+	logAsJSON(t, "JogOverride", jogOverride)
+}
+
 func TestGetControlProgram(t *testing.T) {
 	c := setupTest(t)
 	defer c.Close()

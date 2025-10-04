@@ -103,6 +103,11 @@ func (c *Client) GetFeedOverride() (int32, error) {
 	return c.adapter.ReadFeedOverride()
 }
 
+// GetJogOverride возвращает процент коррекции скорости в режиме JOG.
+func (c *Client) GetJogOverride() (int32, error) {
+	return c.adapter.ReadJogOverride()
+}
+
 // GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
 func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
 	return c.adapter.AggregateAllData()

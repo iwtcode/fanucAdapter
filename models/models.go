@@ -101,4 +101,5 @@ type AggregatedData struct {
 	ContourFeedRate    int32              `json:"contour_feed_rate"`
 	ActualFeedRate     int32              `json:"actual_feed_rate"`
 	FeedOverride       int16              `json:"feed_override"`
+	JogOverride        int32              `json:"jog_override"`
 }
