@@ -15,6 +15,8 @@ short go_cnc_relative(unsigned short h, short axis, short length, ODBAXIS* axis_
 short go_cnc_machine(unsigned short h, short axis, short length, ODBAXIS* axis_out);
 short go_cnc_rdposition(unsigned short h, short type, short* data_num, ODBPOS* position);
 short go_cnc_upstart(unsigned short h, short prog_num);
+short go_cnc_getpath(unsigned short h, short* path_no, short* maxpath_no);
+short go_cnc_upstart4(unsigned short h, short type, const char* file_name);
 short go_cnc_upload(unsigned short h, ODBUP* data_out, unsigned short* len);
 short go_cnc_upend(unsigned short h);
 short go_cnc_rdexecprog(unsigned short h, unsigned short* length, short* blknum, char* data);

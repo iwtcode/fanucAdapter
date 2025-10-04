@@ -38,22 +38,37 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		}
 	}
 
-	if programNumberToUpload == 0 {
-		programNumberToUpload = progInfo.Number
-	}
-
-	if programNumberToUpload <= 0 {
-		return "", fmt.Errorf("no program is currently running or program number could not be determined (name: '%s', number: %d)", progInfo.Name, progInfo.Number)
-	}
-	log.Printf("Starting program upload for program O%d (%s)", programNumberToUpload, progInfo.Name)
-
 	var finalContent string
 	err = a.CallWithReconnect(func(handle uint16) (int16, error) {
-		rc := C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
-		if rc != C.EW_OK {
-			return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progInfo.Name, programNumberToUpload, int16(rc))
+		var rc C.short
+
+		if programNumberToUpload > 0 {
+			log.Printf("Starting program upload by number for program O%d (%s)", programNumberToUpload, progInfo.Name)
+			rc = C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
+			if rc != C.EW_OK {
+				return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progInfo.Name, programNumberToUpload, int16(rc))
+			}
+		} else {
+			var pathNo, maxPathNo C.short
+			rcPath := C.go_cnc_getpath(C.ushort(handle), &pathNo, &maxPathNo)
+			if rcPath != C.EW_OK {
+				return int16(rcPath), fmt.Errorf("cnc_getpath failed: rc=%d", int16(rcPath))
+			}
+
+			filePath := fmt.Sprintf("//CNC_MEM/USER/PATH%d/%s", pathNo, progInfo.Name)
+			log.Printf("Starting program upload by path for program '%s'", filePath)
+
+			cFilePath := C.CString(filePath)
+			defer C.free(unsafe.Pointer(cFilePath))
+
+			// Type 0 for NC program file
+			rc = C.go_cnc_upstart4(C.ushort(handle), 0, cFilePath)
+			if rc != C.EW_OK {
+				return int16(rc), fmt.Errorf("cnc_upstart4 for program '%s' failed: rc=%d", filePath, int16(rc))
+			}
 		}
-		log.Printf("cnc_upstart successful for program O%d.", programNumberToUpload)
+
+		log.Printf("Program upload started successfully.")
 		defer C.go_cnc_upend(C.ushort(handle))
 
 		var sb strings.Builder

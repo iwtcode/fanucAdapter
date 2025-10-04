@@ -65,6 +65,14 @@ short go_cnc_upstart(unsigned short h, short prog_num) {
     return cnc_upstart(h, prog_num);
 }
 
+short go_cnc_getpath(unsigned short h, short* path_no, short* maxpath_no) {
+    return cnc_getpath(h, path_no, maxpath_no);
+}
+
+short go_cnc_upstart4(unsigned short h, short type, const char* file_name) {
+    return cnc_upstart4(h, type, (char*)file_name);
+}
+
 short go_cnc_upload(unsigned short h, ODBUP* data_out, unsigned short* len) {
     return cnc_upload(h, data_out, len);
 }
