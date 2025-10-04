@@ -141,6 +141,16 @@ func TestReadJogOverride(t *testing.T) {
 	logAsJSON(t, "JogOverride", jogOverride)
 }
 
+func TestReadParameters(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	paramInfo, err := c.GetParameterInfo()
+	require.NoError(t, err, "Не удалось прочитать информацию о параметрах")
+
+	logAsJSON(t, "ParameterInfo (standalone)", paramInfo)
+}
+
 func TestGetControlProgram(t *testing.T) {
 	c := setupTest(t)
 	defer c.Close()

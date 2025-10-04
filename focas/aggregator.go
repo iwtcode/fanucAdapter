@@ -53,6 +53,15 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		jogOverride = 0 // Устанавливаем значение по умолчанию в случае ошибки
 	}
 
+	// 8. Получение параметров (счетчики, время)
+	paramInfo, err := a.ReadParameterInfo()
+	if err != nil {
+		// Ошибки уже логируются внутри ReadParameterInfo, поэтому здесь просто продолжаем
+		log.Printf("Warning: one or more parameters could not be read: %v", err)
+		// Инициализируем пустой структурой, чтобы избежать nil pointer dereference
+		paramInfo = &models.ParameterInfo{}
+	}
+
 	// Сборка финальной структуры
 	isEmergency := machineState.EmergencyStatus != "Not Emergency"
 	hasAlarms := len(machineState.Alarms) > 0
@@ -86,6 +95,11 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 		ActualFeedRate:     feedInfo.ActualFeedRate,
 		FeedOverride:       feedInfo.FeedOverride,
 		JogOverride:        jogOverride,
+		PartsCount:         paramInfo.PartsCount,
+		PowerOnTime:        paramInfo.PowerOnTime,
+		OperatingTime:      paramInfo.OperatingTime,
+		CycleTime:          paramInfo.CycleTime,
+		CuttingTime:        paramInfo.CuttingTime,
 	}
 
 	return data, nil

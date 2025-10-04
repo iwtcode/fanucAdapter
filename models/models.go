@@ -79,6 +79,15 @@ type FeedInfo struct {
 	FeedOverride   int16 `json:"feed_override"`
 }
 
+// ParameterInfo содержит информацию о параметрах станка.
+type ParameterInfo struct {
+	PartsCount    int64  `json:"parts_count"`
+	PowerOnTime   string `json:"power_on_time"`
+	OperatingTime string `json:"operating_time"`
+	CycleTime     string `json:"cycle_time"`
+	CuttingTime   string `json:"cutting_time"`
+}
+
 // AggregatedData содержит полную сводку данных о станке.
 type AggregatedData struct {
 	MachineID          string             `json:"machine_id"`
@@ -102,4 +111,9 @@ type AggregatedData struct {
 	ActualFeedRate     int32              `json:"actual_feed_rate"`
 	FeedOverride       int16              `json:"feed_override"`
 	JogOverride        int32              `json:"jog_override"`
+	PartsCount         int64              `json:"parts_count"`
+	PowerOnTime        string             `json:"power_on_time"`
+	OperatingTime      string             `json:"operating_time"`
+	CycleTime          string             `json:"cycle_time"`
+	CuttingTime        string             `json:"cutting_time"`
 }

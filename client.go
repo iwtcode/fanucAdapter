@@ -108,6 +108,11 @@ func (c *Client) GetJogOverride() (int32, error) {
 	return c.adapter.ReadJogOverride()
 }
 
+// GetParameterInfo возвращает информацию о параметрах (счетчики, время работы).
+func (c *Client) GetParameterInfo() (*models.ParameterInfo, error) {
+	return c.adapter.ReadParameterInfo()
+}
+
 // GetCurrentData возвращает полную сводку данных о станке, собранную асинхронно.
 func (c *Client) GetCurrentData() (*models.AggregatedData, error) {
 	return c.adapter.AggregateAllData()
