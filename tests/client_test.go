@@ -121,6 +121,16 @@ func TestReadContourFeedRate(t *testing.T) {
 	logAsJSON(t, "ContourFeedRate", contourFeedRate)
 }
 
+func TestReadFeedOverride(t *testing.T) {
+	c := setupTest(t)
+	defer c.Close()
+
+	feedOverride, err := c.GetFeedOverride()
+	require.NoError(t, err, "Не удалось прочитать информацию о коррекции подачи")
+
+	logAsJSON(t, "FeedOverride", feedOverride)
+}
+
 func TestGetControlProgram(t *testing.T) {
 	c := setupTest(t)
 	defer c.Close()

@@ -117,5 +117,9 @@ short go_cnc_actf(unsigned short h, ODBACT* actualfeed) {
     return cnc_actf(h, actualfeed);
 }
 
+short go_cnc_rdtofs(unsigned short h, short number, short type, short length, ODBTOFS* tofs) {
+    return cnc_rdtofs(h, number, type, length, tofs);
+}
+
 */
 import "C"

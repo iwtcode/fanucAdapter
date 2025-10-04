@@ -28,5 +28,6 @@ short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out);
 short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg);
 short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length, IODBPSD* param_out);
 short go_cnc_actf(unsigned short h, ODBACT* actualfeed);
+short go_cnc_rdtofs(unsigned short h, short number, short type, short length, ODBTOFS* tofs);
 
 #endif // C_HELPERS_H
