@@ -25,14 +25,27 @@ type ModelUnknownProgramReader struct{}
 
 // GetControlProgram считывает полное содержимое текущей выполняемой программы.
 func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (string, error) {
-	progInfo, err := a.ReadProgram()
+	nameBuf := make([]byte, 64)
+	var onum C.long
+	var progName string
+
+	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
+		rc := C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
+		if rc != C.EW_OK {
+			return int16(rc), fmt.Errorf("cnc_exeprgname failed: rc=%d", int16(rc))
+		}
+		return int16(rc), nil
+	})
+
 	if err != nil {
 		return "", fmt.Errorf("could not read program info: %w", err)
 	}
 
+	progName = strings.TrimRight(string(nameBuf), "\x00")
+
 	var programNumberToUpload int64
-	if strings.HasPrefix(progInfo.Name, "O") {
-		parsedNum, err := strconv.ParseInt(strings.TrimSpace(progInfo.Name[1:]), 10, 64)
+	if strings.HasPrefix(progName, "O") {
+		parsedNum, err := strconv.ParseInt(strings.TrimSpace(progName[1:]), 10, 64)
 		if err == nil {
 			programNumberToUpload = parsedNum
 		}
@@ -43,10 +56,10 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		var rc C.short
 
 		if programNumberToUpload > 0 {
-			log.Printf("Starting program upload by number for program O%d (%s)", programNumberToUpload, progInfo.Name)
+			log.Printf("Starting program upload by number for program O%d (%s)", programNumberToUpload, progName)
 			rc = C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
 			if rc != C.EW_OK {
-				return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progInfo.Name, programNumberToUpload, int16(rc))
+				return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progName, programNumberToUpload, int16(rc))
 			}
 		} else {
 			var pathNo, maxPathNo C.short
@@ -55,13 +68,12 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 				return int16(rcPath), fmt.Errorf("cnc_getpath failed: rc=%d", int16(rcPath))
 			}
 
-			filePath := fmt.Sprintf("//CNC_MEM/USER/PATH%d/%s", pathNo, progInfo.Name)
+			filePath := fmt.Sprintf("//CNC_MEM/USER/PATH%d/%s", pathNo, progName)
 			log.Printf("Starting program upload by path for program '%s'", filePath)
 
 			cFilePath := C.CString(filePath)
 			defer C.free(unsafe.Pointer(cFilePath))
 
-			// Type 0 for NC program file
 			rc = C.go_cnc_upstart4(C.ushort(handle), 0, cFilePath)
 			if rc != C.EW_OK {
 				return int16(rc), fmt.Errorf("cnc_upstart4 for program '%s' failed: rc=%d", filePath, int16(rc))
@@ -92,13 +104,10 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 			isDataRead := rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER
 
-			// Записываем данные в буфер только в случае успешного чтения
 			if isDataRead && length > 0 {
 				goBytes := C.GoBytes(unsafe.Pointer(&buffer.data[0]), C.int(length))
 				sb.Write(goBytes)
 			}
-
-			// --- Логика управления циклом ---
 
 			// 1. Условия успешного завершения
 			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_NODATA {

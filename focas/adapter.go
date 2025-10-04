@@ -237,7 +237,6 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 	// Считываем и добавляем информацию об ошибках
 	alarms, err := a.ReadAlarms()
 	if err != nil {
-		// Можно либо вернуть ошибку, либо просто залогировать и продолжить
 		log.Printf("Warning: could not read alarms: %v\n", err)
 	} else {
 		machineData.Alarms = alarms
@@ -248,8 +247,6 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 
 // GetControlProgram считывает G-код программы, используя реализацию для конкретной модели.
 func (a *FocasAdapter) GetControlProgram() (string, error) {
-	// Делегируем чтение программы конкретной реализации, передавая ей себя
-	// в качестве FocasCaller для выполнения низкоуровневых вызовов.
 	return a.programReader.GetControlProgram(a)
 }
 
@@ -260,7 +257,6 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 	var onum C.long
 	var rc C.short
 
-	// Получаем имя и номер программы
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
 		if rc != C.EW_OK {
@@ -278,7 +274,6 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 		Number: int64(onum),
 	}
 
-	// Получаем текущую строку G-кода с повторными попытками
 	const (
 		maxBusyRetries = 10
 		busyRetryDelay = 50 * time.Millisecond
@@ -298,7 +293,7 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 				fullBlock := trimNull(string(dataBuf[:length]))
 				lines := strings.Split(fullBlock, "\n")
 				progInfo.CurrentGCode = lines[0]
-				return int16(rc), nil // ИСПРАВЛЕНО
+				return int16(rc), nil
 			}
 
 			if rc == EW_BUSY {
@@ -307,10 +302,10 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 			}
 
 			// Любая другая ошибка
-			return int16(rc), fmt.Errorf("cnc_rdexecprog failed with rc=%d", int16(rc)) // ИСПРАВЛЕНО
+			return int16(rc), fmt.Errorf("cnc_rdexecprog failed with rc=%d", int16(rc))
 		}
 		// Если вышли из цикла
-		return int16(rc), fmt.Errorf("cnc_rdexecprog timed out after %d retries (last rc=%d)", maxBusyRetries, int16(rc)) // ИСПРАВЛЕНО
+		return int16(rc), fmt.Errorf("cnc_rdexecprog timed out after %d retries (last rc=%d)", maxBusyRetries, int16(rc))
 	})
 
 	if err != nil {
