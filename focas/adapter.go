@@ -277,7 +277,7 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 	const (
 		maxBusyRetries = 10
 		busyRetryDelay = 50 * time.Millisecond
-		EW_BUSY        = -8
+		EW_HANDLE      = -8
 	)
 
 	err = a.CallWithReconnect(func(handle uint16) (int16, error) {
@@ -296,7 +296,7 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 				return int16(rc), nil
 			}
 
-			if rc == EW_BUSY {
+			if rc == EW_HANDLE {
 				time.Sleep(busyRetryDelay)
 				continue // Контроллер занят, повторяем
 			}

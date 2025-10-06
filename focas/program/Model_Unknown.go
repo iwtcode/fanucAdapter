@@ -88,8 +88,8 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		var lastRc C.short
 
 		const (
-			EW_NODATA = -2 // Нет данных (конец файла)
-			EW_BUSY   = -8 // Контроллер занят
+			EW_RESET  = -2 // Reset or stop request
+			EW_HANDLE = -8 // Handle number error
 		)
 
 		iteration := 0
@@ -110,13 +110,13 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			}
 
 			// 1. Условия успешного завершения
-			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_NODATA {
+			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_RESET {
 				log.Printf("Upload finished successfully with code: %d", rcUpload)
 				break
 			}
 
 			// 2. Условие для повторной попытки
-			if rcUpload == EW_BUSY {
+			if rcUpload == EW_HANDLE {
 				log.Printf("CNC is busy (rc=%d). Retrying in 50ms...", rcUpload)
 				time.Sleep(50 * time.Millisecond)
 				continue
