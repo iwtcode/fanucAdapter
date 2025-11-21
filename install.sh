@@ -2,23 +2,17 @@
 version=1.0.5
 platform=linux
 
-# Определяем абсолютный путь к папке, где лежит скрипт (корень проекта)
 base="$(dirname "$(realpath "$0")")"
-# Целевая папка теперь focas внутри проекта
 target_dir="$base/focas"
 
-echo "Project root: $base"
-echo "Target directory: $target_dir"
+echo "Подготовка библиотеки в: $target_dir"
 
 _arch=$(arch)
 _set=true
 if [ -z "${TARGETPLATFORM}" ]; then _set=false; fi
 
-# 1. Определение архитектуры (оставляем логику выбора файла)
+# Определение архитектуры
 if [ "$_set" = true ] && [ "$TARGETPLATFORM" = "aarch64" ] || [ "$_arch" = "aarch64" ]; then
-  # Для ARM (если нужно доустановить зависимости, раскомментируйте apt-get)
-  # export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/arm-linux-gnueabihf/lib/
-  # dpkg --add-architecture armhf && apt-get update && apt-get install -y libc6-dev:armhf gcc-arm-linux-gnueabihf
   arch=armv7
 elif [ "$_set" = true ] && [ "$TARGETPLATFORM" = "linux/amd64" ] || [ "$_arch" = "x86_64" ]; then
   arch=x64
@@ -28,40 +22,32 @@ else
   arch=x86
 fi
 
-echo "Detected architecture: $arch"
-
-# Имя исходного файла библиотеки (например, libfwlib32-linux-x64.so.1.0.5)
 src_lib="libfwlib32-$platform-$arch.so.$version"
 
-# Проверяем наличие исходного файла
 if [ ! -f "$base/$src_lib" ]; then
-    echo "Error: Source file '$src_lib' not found in $base"
+    echo "Ошибка: Файл '$src_lib' не найден в корне."
     exit 1
 fi
 
-# 2. Создаем папку focas, если её нет
 mkdir -p "$target_dir"
 
-# 3. Копируем библиотеку
-echo "Copying library..."
-cp "$base/$src_lib" "$target_dir/libfwlib32.so.$version"
-
-# 4. Копируем заголовочный файл
-echo "Copying header..."
+# Копируем заголовок
 cp "$base/fwlib32.h" "$target_dir/fwlib32.h"
 
-# 5. Создаем симлинки внутри папки focas
-# Переходим в папку, чтобы ссылки были относительными (правильными)
-cd "$target_dir" || exit
+# --- ИЗМЕНЕНИЕ ЗДЕСЬ ---
+# Вместо ссылок делаем физические копии. 
+# Это гарантирует работу в cross-platform среде (Windows/WSL/Linux)
 
-# Удаляем старые ссылки, если есть
-rm -f libfwlib32.so
-rm -f libfwlib32.so.1
+echo "Создание физических копий библиотеки..."
 
-# Создаем новые (libfwlib32.so -> libfwlib32.so.1 -> libfwlib32.so.1.0.5)
-ln -s "libfwlib32.so.$version" "libfwlib32.so.1"
-ln -s "libfwlib32.so.1" "libfwlib32.so"
+# 1. Оригинальное имя (для истории/справки)
+cp "$base/$src_lib" "$target_dir/libfwlib32.so.$version"
 
-echo "Done!"
-echo "Files in $target_dir:"
-ls -l libfwlib32* fwlib32.h
+# 2. Имя с версией .1 (часто требуется загрузчиком runtime loader, если есть SONAME)
+cp "$base/$src_lib" "$target_dir/libfwlib32.so.1"
+
+# 3. Имя .so (требуется для компилятора go/gcc при флаге -lfwlib32)
+cp "$base/$src_lib" "$target_dir/libfwlib32.so"
+
+echo "Готово! Теперь это реальные файлы, а не ссылки."
+ls -l "$target_dir/libfwlib32"*
