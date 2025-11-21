@@ -1,5 +1,3 @@
-// D:\vs\go\fanucService\focas\parameter.go
-
 package focas
 
 import (
@@ -13,6 +11,10 @@ import (
 )
 
 /*
+#cgo CFLAGS: -I${SRCDIR}
+#cgo LDFLAGS: -L${SRCDIR} -lfwlib32
+#cgo linux LDFLAGS: -Wl,-rpath,${SRCDIR}
+
 #include "c_helpers.h"
 */
 import "C"

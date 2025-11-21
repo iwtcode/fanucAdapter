@@ -1,9 +1,9 @@
 package program
 
 /*
-#cgo CFLAGS: -I../
-#cgo LDFLAGS: -L../ -lfwlib32 -Wl,-rpath,'$ORIGIN'
-// #cgo windows LDFLAGS: -L../ -lfwlib32
+#cgo CFLAGS: -I${SRCDIR}/..
+#cgo LDFLAGS: -L${SRCDIR}/.. -lfwlib32
+#cgo linux LDFLAGS: -Wl,-rpath,${SRCDIR}/..
 
 #include <stdlib.h>
 #include "../c_helpers.h"

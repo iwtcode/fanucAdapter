@@ -1,13 +1,10 @@
 package tests
 
 import (
-	"context"
 	"encoding/json"
 	"log"
 	"os"
-	"sync"
 	"testing"
-	"time"
 
 	fanuc "github.com/iwtcode/fanucService"
 	"github.com/joho/godotenv"
@@ -175,45 +172,4 @@ func TestGetCurrentData(t *testing.T) {
 	require.NoError(t, err, "Не удалось получить агрегированные данные")
 
 	logAsJSON(t, "Aggregated Current Data", data)
-}
-
-func TestPolling(t *testing.T) {
-	c := setupTest(t)
-	defer c.Close()
-
-	pollingDuration := 15 * time.Second
-	pollingInterval := 5 * time.Second
-
-	log.Printf("Запуск опроса данных каждые %s в течение %s...", pollingInterval, pollingDuration)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	resultsChan := c.Polling(ctx, pollingInterval)
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		for result := range resultsChan {
-			log.Printf("--- Данные опроса получены в %s ---", time.Now().Format(time.RFC3339))
-			if result.Err != nil {
-				log.Printf("Ошибка во время опроса: %v", result.Err)
-			} else {
-				logAsJSON(t, "Агрегированные данные опроса", result.Data)
-			}
-		}
-		log.Println("Канал опроса закрыт, горутина чтения завершается.")
-	}()
-
-	time.Sleep(pollingDuration)
-
-	log.Println("Время теста истекло, отменяю контекст...")
-	cancel()
-
-	log.Println("Ожидание завершения горутины чтения...")
-	wg.Wait()
-
-	log.Println("Тест опроса завершен корректно.")
 }

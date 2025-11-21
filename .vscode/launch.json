@@ -7,10 +7,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/main.go",
-            "cwd": "${workspaceFolder}",
-            "env": {
-                "LD_LIBRARY_PATH": "${workspaceFolder}"
-            }
+            "cwd": "${workspaceFolder}"
         },
         {
             "name": "Launch test function",
@@ -21,10 +18,7 @@
             "args": [
                 "-test.v",
                 "-test.count=1"
-            ],
-            "env": {
-                "LD_LIBRARY_PATH": "${workspaceFolder}"
-            }
+            ]
         }
     ]
 }
