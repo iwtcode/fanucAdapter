@@ -15,7 +15,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // ReadAxisData считывает имена, абсолютные позиции и диагностику для всех управляемых осей

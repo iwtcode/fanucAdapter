@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	fanuc "github.com/iwtcode/fanucService"
+	fanuc "github.com/iwtcode/fanucAdapter"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/require"
 )

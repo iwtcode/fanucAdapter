@@ -3,9 +3,9 @@ package focas
 import (
 	"strings"
 
-	"github.com/iwtcode/fanucService/focas/interpreter"
-	"github.com/iwtcode/fanucService/focas/model"
-	"github.com/iwtcode/fanucService/focas/program"
+	"github.com/iwtcode/fanucAdapter/focas/interpreter"
+	"github.com/iwtcode/fanucAdapter/focas/model"
+	"github.com/iwtcode/fanucAdapter/focas/program"
 )
 
 // GetModelImplementations выбирает подходящие интерпретатор и ридер программ

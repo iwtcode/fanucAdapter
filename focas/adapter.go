@@ -22,8 +22,8 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/focas/model"
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/focas/model"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // FocasAdapter инкапсулирует логику подключения и вызовов к FOCAS API.

@@ -17,8 +17,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/focas/interpreter"
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/focas/interpreter"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // ReadAlarms считывает все активные сообщения об ошибках со станка.

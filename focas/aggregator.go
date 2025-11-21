@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // AggregateAllData собирает все доступные данные со станка последовательно.

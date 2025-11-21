@@ -3,7 +3,7 @@ package interpreter
 import (
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 /*

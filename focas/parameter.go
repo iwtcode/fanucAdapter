@@ -7,7 +7,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 /*

@@ -1,4 +1,4 @@
-module github.com/iwtcode/fanucService
+module github.com/iwtcode/fanucAdapter
 
 go 1.24.4
 

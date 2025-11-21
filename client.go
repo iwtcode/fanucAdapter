@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/iwtcode/fanucService/focas"
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/focas"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 var (

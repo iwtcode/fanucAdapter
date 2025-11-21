@@ -1,4 +1,4 @@
-# fanucService
+# fanucAdapter
 
 ```bash
 # -count=1 отключает кэш

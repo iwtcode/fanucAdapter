@@ -16,7 +16,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // ReadFeedData считывает фактическую скорость подачи и процент коррекции.

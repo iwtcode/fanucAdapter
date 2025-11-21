@@ -17,7 +17,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/focas/model"
+	"github.com/iwtcode/fanucAdapter/focas/model"
 )
 
 // ModelUnknownProgramReader предоставляет реализацию по умолчанию для чтения управляющей программы.

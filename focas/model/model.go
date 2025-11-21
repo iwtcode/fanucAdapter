@@ -3,7 +3,7 @@ package model
 import (
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // FanucModel представляет конкретную серию моделей ЧПУ.

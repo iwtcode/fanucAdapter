@@ -15,7 +15,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/iwtcode/fanucService/models"
+	"github.com/iwtcode/fanucAdapter/models"
 )
 
 // ReadSpindleData считывает информацию о скорости, нагрузке и коррекции для всех активных шпинделей.
