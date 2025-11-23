@@ -27,7 +27,6 @@ short go_cnc_rdspeed(unsigned short h, short type, ODBSPEED* speed_out);
 short go_cnc_rdspload(unsigned short h, short type, ODBSPN* load_out);
 short go_cnc_rdalmmsg(unsigned short h, short type, short* num, ODBALMMSG* msg);
 short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length, IODBPSD* param_out);
-// Исправленная сигнатура: добавлен e_number
 short go_cnc_rdparar(unsigned short h, short* s_number, short axis, short* e_number, short* length, IODBPSD* param_out);
 short go_cnc_actf(unsigned short h, ODBACT* actualfeed);
 short go_cnc_rdtofs(unsigned short h, short number, short type, short length, ODBTOFS* tofs);

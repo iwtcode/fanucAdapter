@@ -46,7 +46,7 @@ func (a *FocasAdapter) ReadParameterInfo() (*models.ParameterInfo, error) {
 	// Размер одного параметра (IODBPSD) для long целого = 8 байт
 	// (2 байта datano + 2 байта type + 4 байта ldata)
 	const paramSize = 8
-	const bufferSize = 4096 // Достаточно для ~500 параметров
+	const bufferSize = 4096
 	buffer := make([]byte, bufferSize)
 
 	var rc C.short
