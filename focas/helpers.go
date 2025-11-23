@@ -46,8 +46,6 @@ func (a *FocasAdapter) readDiagnosisInternal(diagNo int16, axisNo int16, length 
 	return buffer, nil
 }
 
-// --- Методы для одной оси ---
-
 func (a *FocasAdapter) ReadDiagnosisByte(diagNo int16, axisNo int16) (int32, error) {
 	buf, err := a.readDiagnosisInternal(diagNo, axisNo, 5) // 4 header + 1 data
 	if err != nil {
@@ -82,8 +80,6 @@ func (a *FocasAdapter) ReadDiagnosisReal(diagNo int16, axisNo int16) (float64, e
 	return float64(val) / math.Pow(10, float64(decPos)), nil
 }
 
-// --- Новые методы для массового чтения (ВСЕ ОСИ) ---
-
 // ReadDiagnosisByteAllAxes читает байтовую диагностику для всех осей сразу.
 func (a *FocasAdapter) ReadDiagnosisByteAllAxes(diagNo int16, maxAxes int16) ([]int32, error) {
 	// Header (4 bytes) + (1 byte * maxAxes)
@@ -99,6 +95,26 @@ func (a *FocasAdapter) ReadDiagnosisByteAllAxes(diagNo int16, maxAxes int16) ([]
 		offset := 4 + i
 		if offset < len(buf) {
 			results[i] = int32(buf[offset])
+		}
+	}
+	return results, nil
+}
+
+// ReadDiagnosisWordAllAxes читает 2-байтовую (Word) диагностику для всех осей.
+func (a *FocasAdapter) ReadDiagnosisWordAllAxes(diagNo int16, maxAxes int16) ([]int32, error) {
+	// Header (4 bytes) + (2 bytes * maxAxes)
+	length := int16(4 + 2*int(maxAxes))
+
+	buf, err := a.readDiagnosisInternal(diagNo, -1, length)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]int32, maxAxes)
+	for i := 0; i < int(maxAxes); i++ {
+		offset := 4 + (i * 2)
+		if offset+2 <= len(buf) {
+			results[i] = int32(binary.LittleEndian.Uint16(buf[offset : offset+2]))
 		}
 	}
 	return results, nil
