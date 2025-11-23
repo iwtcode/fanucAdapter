@@ -74,7 +74,7 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 	}
 
 	data := &models.AggregatedData{
-		MachineID:          a.ip,
+		MachineID:          fmt.Sprintf("%s:%d", a.ip, a.port),
 		Timestamp:          time.Now().UTC(),
 		IsEnabled:          true,
 		IsEmergency:        isEmergency,
