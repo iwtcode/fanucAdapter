@@ -26,6 +26,10 @@ import (
 	"github.com/iwtcode/fanucAdapter/models"
 )
 
+// libLock обеспечивает глобальную синхронизацию для всех вызовов к libfwlib32.
+// Библиотека FOCAS на Linux чувствительна к конкурентным вызовам даже с разными хендлами.
+var libLock sync.Mutex
+
 // FocasAdapter инкапсулирует логику подключения и вызовов к FOCAS API.
 // Он также управляет автоматическим переподключением и содержит реализации
 // для конкретной модели станка.
@@ -74,6 +78,9 @@ func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string
 
 // Startup инициализирует процесс FOCAS2
 func Startup(mode uint16, logPath string) error {
+	libLock.Lock()
+	defer libLock.Unlock()
+
 	dir := filepath.Dir(logPath)
 	if dir != "" && dir != "." {
 		_ = os.MkdirAll(dir, 0o755)
@@ -91,6 +98,9 @@ func Startup(mode uint16, logPath string) error {
 
 // Connect подключается к станку и возвращает хендл
 func Connect(ip string, port uint16, timeoutMs int32) (uint16, error) {
+	libLock.Lock()
+	defer libLock.Unlock()
+
 	cip := C.CString(ip)
 	defer C.free(unsafe.Pointer(cip))
 
@@ -107,6 +117,9 @@ func Disconnect(handle uint16) {
 	if handle == 0 {
 		return
 	}
+	libLock.Lock()
+	defer libLock.Unlock()
+
 	C.go_cnc_freelibhndl(C.ushort(handle))
 }
 
@@ -116,6 +129,8 @@ func (a *FocasAdapter) Reconnect() error {
 	defer a.mu.Unlock()
 
 	if a.handle != 0 {
+		// Disconnect сам берет libLock, поэтому здесь просто вызываем его
+		// (внимание: Disconnect берет libLock внутри, поэтому здесь безопасно)
 		Disconnect(a.handle)
 		a.handle = 0
 		time.Sleep(50 * time.Millisecond)
@@ -132,13 +147,20 @@ func (a *FocasAdapter) Reconnect() error {
 }
 
 // CallWithReconnect — это обертка для выполнения вызовов с возможностью переподключения.
+// Она гарантирует, что C-вызов выполняется эксклюзивно (через libLock).
 func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) error {
 	for {
 		a.mu.Lock()
 		currentHandle := a.handle
 		a.mu.Unlock()
 
+		// === GLOBAL LOCK START ===
+		// Сериализуем доступ к C-библиотеке, чтобы разные горутины
+		// (разные станки) не вызывали функции FOCAS одновременно.
+		libLock.Lock()
 		rc, err := f(currentHandle)
+		libLock.Unlock()
+		// === GLOBAL LOCK END ===
 
 		if err == nil {
 			return nil
