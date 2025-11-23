@@ -36,96 +36,77 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
 }
 
-// readParameterLong считывает 4-байтовый (long) параметр.
-func (a *FocasAdapter) readParameterLong(prmNo int16) (int32, error) {
-	const length = 8
-	buffer := make([]byte, length)
+// ReadParameterInfo считывает и сразу форматирует группу параметров одним пакетным запросом.
+func (a *FocasAdapter) ReadParameterInfo() (*models.ParameterInfo, error) {
+	info := &models.ParameterInfo{}
+
+	const startParam = 6711
+	const endParam = 6757
+
+	// Размер одного параметра (IODBPSD) для long целого = 8 байт
+	// (2 байта datano + 2 байта type + 4 байта ldata)
+	const paramSize = 8
+	const bufferSize = 4096 // Достаточно для ~500 параметров
+	buffer := make([]byte, bufferSize)
+
 	var rc C.short
+	var length C.short = C.short(bufferSize)
+	var startNo C.short = C.short(startParam)
+	var endNo C.short = C.short(endParam)
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
-		rc = C.go_cnc_rdparam(
+		rc = C.go_cnc_rdparar(
 			C.ushort(handle),
-			C.short(prmNo),
-			0,
-			C.short(length),
+			&startNo, // Указатель на start
+			0,        // Axis
+			&endNo,   // Указатель на end
+			&length,  // Указатель на length
 			(*C.IODBPSD)(unsafe.Pointer(&buffer[0])),
 		)
+
 		if rc != C.EW_OK {
-			return int16(rc), fmt.Errorf("cnc_rdparam для параметра %d завершился с ошибкой: rc=%d", prmNo, int16(rc))
+			return int16(rc), fmt.Errorf("cnc_rdparar failed for range %d-%d: rc=%d", startParam, endParam, int16(rc))
 		}
 		return int16(rc), nil
 	})
 
 	if err != nil {
-		return 0, err
+		log.Printf("Error reading parameters: %v", err)
+		return info, err
 	}
 
-	// Данные ldata начинаются со смещения 4 (после datano и type)
-	value := int32(binary.LittleEndian.Uint32(buffer[4:8]))
-	return value, nil
-}
+	bytesRead := int(length)
+	offset := 0
 
-// ReadParameterInfo считывает и сразу форматирует группу параметров.
-func (a *FocasAdapter) ReadParameterInfo() (*models.ParameterInfo, error) {
-	info := &models.ParameterInfo{}
-	var firstErr error
+	// Парсинг ответа
+	for offset+paramSize <= bytesRead {
+		// IODBPSD:
+		// 0-2: datano (short)
+		// 2-4: type (short)
+		// 4-8: value (long/int32 - при условии type=INTEGER)
 
-	// Чтение количества деталей
-	partsCount, err := a.readParameterLong(paramPartsCount)
-	if err != nil {
-		log.Printf("Warning: не удалось прочитать количество деталей (параметр %d): %v", paramPartsCount, err)
-		firstErr = err
-	} else {
-		info.PartsCount = int64(partsCount)
-	}
+		prmNo := int16(binary.LittleEndian.Uint16(buffer[offset : offset+2]))
+		val := int32(binary.LittleEndian.Uint32(buffer[offset+4 : offset+8]))
 
-	// Чтение времени включения
-	powerOnSeconds, err := a.readParameterLong(paramPowerOnTime)
-	if err != nil {
-		log.Printf("Warning: не удалось прочитать время включения (параметр %d): %v", paramPowerOnTime, err)
-		if firstErr == nil {
-			firstErr = err
+		switch prmNo {
+		case paramPartsCount:
+			info.PartsCount = int64(val)
+		case paramPowerOnTime:
+			duration := time.Duration(val) * time.Second
+			info.PowerOnTime = formatDuration(duration)
+		case paramOperatingTime:
+			duration := time.Duration(val) * time.Second
+			info.OperatingTime = formatDuration(duration)
+		case paramCuttingTime:
+			duration := time.Duration(val) * time.Second
+			info.CuttingTime = formatDuration(duration)
+		case paramCycleTime:
+			duration := time.Duration(val) * time.Second
+			info.CycleTime = formatDuration(duration)
 		}
-	} else {
-		duration := time.Duration(powerOnSeconds) * time.Second
-		info.PowerOnTime = formatDuration(duration)
+
+		offset += paramSize
 	}
 
-	// Чтение времени работы
-	operatingSeconds, err := a.readParameterLong(paramOperatingTime)
-	if err != nil {
-		log.Printf("Warning: не удалось прочитать время работы (параметр %d): %v", paramOperatingTime, err)
-		if firstErr == nil {
-			firstErr = err
-		}
-	} else {
-		duration := time.Duration(operatingSeconds) * time.Second
-		info.OperatingTime = formatDuration(duration)
-	}
-
-	// Чтение времени резания
-	cuttingSeconds, err := a.readParameterLong(paramCuttingTime)
-	if err != nil {
-		log.Printf("Warning: не удалось прочитать время резания (параметр %d): %v", paramCuttingTime, err)
-		if firstErr == nil {
-			firstErr = err
-		}
-	} else {
-		duration := time.Duration(cuttingSeconds) * time.Second
-		info.CuttingTime = formatDuration(duration)
-	}
-
-	// Чтение времени цикла
-	cycleSeconds, err := a.readParameterLong(paramCycleTime)
-	if err != nil {
-		log.Printf("Warning: не удалось прочитать время цикла (параметр %d): %v", paramCycleTime, err)
-		if firstErr == nil {
-			firstErr = err
-		}
-	} else {
-		duration := time.Duration(cycleSeconds) * time.Second
-		info.CycleTime = formatDuration(duration)
-	}
-
-	return info, firstErr
+	return info, nil
 }

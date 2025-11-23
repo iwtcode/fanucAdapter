@@ -113,6 +113,11 @@ short go_cnc_rdparam(unsigned short h, short prm_no, short axis_no, short length
     return cnc_rdparam(h, prm_no, axis_no, length, param_out);
 }
 
+// Исправленная реализация: передаем s_number и e_number
+short go_cnc_rdparar(unsigned short h, short* s_number, short axis, short* e_number, short* length, IODBPSD* param_out) {
+    return cnc_rdparar(h, s_number, axis, e_number, length, param_out);
+}
+
 short go_cnc_actf(unsigned short h, ODBACT* actualfeed) {
     return cnc_actf(h, actualfeed);
 }
