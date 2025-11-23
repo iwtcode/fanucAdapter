@@ -12,6 +12,7 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
+	"log"
 	"math"
 	"unsafe"
 
@@ -25,6 +26,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 		return []models.AxisInfo{}, nil
 	}
 
+	// Используем MaxAxes из sysinfo (в вашем случае 32) для расчета буферов
 	maxAxes := sysInfo.MaxAxes
 	const odbposSize = 48
 	bufferSize := int(maxAxes) * odbposSize
@@ -32,6 +34,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	axesToRead := C.short(maxAxes)
 	var rc C.short
 
+	// 1. Читаем позиции (стандартный метод)
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
 		if rc != C.EW_OK {
@@ -44,11 +47,42 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 		return nil, err
 	}
 
-	if int(axesToRead) > int(maxAxes) {
-		axesToRead = C.short(maxAxes)
-	}
+	// axesToRead возвращает реальное количество прочитанных осей (например, 3)
+	// Но для диагностики нам нужно знать системный максимум (32).
+
 	if int(axesToRead) <= 0 {
 		return []models.AxisInfo{}, nil
+	}
+
+	// 2. Массовое чтение диагностики (OPTIMIZATION)
+	// Передаем maxAxes (32), чтобы FOCAS не вернул ошибку длины.
+
+	// Diag 301: Servo Load (Real)
+	diag301Vals, err := a.ReadDiagnosisRealAllAxes(301, maxAxes)
+	if err != nil {
+		log.Printf("Warning: Batch read diag 301 failed: %v", err)
+		diag301Vals = make([]float64, maxAxes)
+	}
+
+	// Diag 308: Servo Temperature (Byte)
+	diag308Vals, err := a.ReadDiagnosisByteAllAxes(308, maxAxes)
+	if err != nil {
+		log.Printf("Warning: Batch read diag 308 failed: %v", err)
+		diag308Vals = make([]int32, maxAxes)
+	}
+
+	// Diag 309: Coder Temperature (Byte)
+	diag309Vals, err := a.ReadDiagnosisByteAllAxes(309, maxAxes)
+	if err != nil {
+		log.Printf("Warning: Batch read diag 309 failed: %v", err)
+		diag309Vals = make([]int32, maxAxes)
+	}
+
+	// Diag 4901: Power Consumption (Double Word)
+	diag4901Vals, err := a.ReadDiagnosisDoubleWordAllAxes(4901, maxAxes)
+	if err != nil {
+		// Это нормально для старых станков
+		diag4901Vals = make([]int64, maxAxes)
 	}
 
 	axisInfos := make([]models.AxisInfo, 0, axesToRead)
@@ -56,6 +90,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	for i := 0; i < int(axesToRead); i++ {
 		offset := i * odbposSize
 
+		// Парсинг позиции из ODBPOS
 		posDataVal := int32(binary.LittleEndian.Uint32(buffer[offset+0 : offset+4]))
 		posDecVal := int16(binary.LittleEndian.Uint16(buffer[offset+4 : offset+6]))
 		posNameChar := buffer[offset+10]
@@ -72,35 +107,32 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 
 		position := float64(posDataVal) / math.Pow(10, float64(posDecVal))
 
-		axisNumber := int16(i + 1)
+		// Берем значения из массивов по индексу оси
+		var d301 float64
+		var d308 int32
+		var d309 int32
+		var d4901 int64
 
-		var diag301Value float64
-		if val, err := a.ReadDiagnosisReal(301, axisNumber); err == nil {
-			diag301Value = val
+		if i < len(diag301Vals) {
+			d301 = diag301Vals[i]
 		}
-
-		var servoTempValue int32
-		if val, err := a.ReadDiagnosisByte(308, axisNumber); err == nil {
-			servoTempValue = val
+		if i < len(diag308Vals) {
+			d308 = diag308Vals[i]
 		}
-
-		var coderTempValue int32
-		if val, err := a.ReadDiagnosisByte(309, axisNumber); err == nil {
-			coderTempValue = val
+		if i < len(diag309Vals) {
+			d309 = diag309Vals[i]
 		}
-
-		var powerConsumptionValue int64
-		if val, err := a.ReadDiagnosisDoubleWord(4901, axisNumber); err == nil {
-			powerConsumptionValue = val
+		if i < len(diag4901Vals) {
+			d4901 = diag4901Vals[i]
 		}
 
 		axisInfos = append(axisInfos, models.AxisInfo{
 			Name:             trimNull(fullName),
 			Position:         position,
-			Diag301:          diag301Value,
-			ServoTemperature: servoTempValue,
-			CoderTemperature: coderTempValue,
-			PowerConsumption: int32(powerConsumptionValue),
+			Diag301:          d301,
+			ServoTemperature: d308,
+			CoderTemperature: d309,
+			PowerConsumption: int32(d4901),
 		})
 	}
 

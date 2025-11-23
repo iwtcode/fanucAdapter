@@ -14,11 +14,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${file}",
-            "args": [
-                "-test.v",
-                "-test.count=1"
-            ]
+            "program": "${file}"
         }
     ]
 }
