@@ -15,6 +15,7 @@ import (
 	"math"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/models"
 )
 
@@ -29,7 +30,7 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_rdspmeter(C.ushort(handle), -1, &numSpindles, (*C.ODBSPLOAD)(unsafe.Pointer(&buffer[0])))
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdspmeter failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil
@@ -47,7 +48,7 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 	var overrideData C.ODBSPN
 	errOverride := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc := C.go_cnc_rdspload(C.ushort(handle), -1, &overrideData)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("go_cnc_rdspload failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil

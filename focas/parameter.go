@@ -6,6 +6,7 @@ import (
 	"time"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/models"
 )
 
@@ -63,7 +64,7 @@ func (a *FocasAdapter) ReadParameterInfo() (*models.ParameterInfo, error) {
 			(*C.IODBPSD)(unsafe.Pointer(&buffer[0])),
 		)
 
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdparar failed for range %d-%d: rc=%d", startParam, endParam, int16(rc))
 		}
 		return int16(rc), nil

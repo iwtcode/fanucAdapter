@@ -21,6 +21,7 @@ import (
 	"time"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/focas/model"
 	"github.com/iwtcode/fanucAdapter/models"
 	"github.com/sirupsen/logrus"
@@ -97,7 +98,7 @@ func Startup(mode uint16, logPath string) error {
 	}
 
 	rc := C.go_cnc_startupprocess(C.ushort(mode), cpath)
-	if rc != C.EW_OK {
+	if int16(rc) != EW_OK {
 		return fmt.Errorf("cnc_startupprocess(%d, %q) rc=%d", mode, logPath, int16(rc))
 	}
 	return nil
@@ -113,7 +114,7 @@ func Connect(ip string, port uint16, timeoutMs int32) (uint16, error) {
 
 	var h C.ushort
 	rc := C.go_cnc_allclibhndl3(cip, C.ushort(port), C.long(timeoutMs), &h)
-	if rc != C.EW_OK {
+	if int16(rc) != EW_OK {
 		return 0, fmt.Errorf("cnc_allclibhndl3 failed: rc=%d", int16(rc))
 	}
 	return uint16(h), nil
@@ -178,7 +179,7 @@ func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) e
 			return nil
 		}
 
-		if rc == C.EW_HANDLE || rc == C.EW_SOCKET {
+		if rc == EW_HANDLE || rc == EW_SOCKET {
 			a.logger.Warnf("Connection error detected (rc=%d). Attempting to Reconnect...", rc)
 
 			if reconnErr := a.Reconnect(); reconnErr != nil {
@@ -217,7 +218,7 @@ func (a *FocasAdapter) ReadSystemInfo() (*models.SystemInfo, error) {
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_sysinfo(C.ushort(handle), &sysInfo)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("go_cnc_sysinfo rc=%d", int16(rc))
 		}
 		return int16(rc), nil
@@ -255,7 +256,7 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_statinfo(C.ushort(handle), &stat)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("go_cnc_statinfo rc=%d", int16(rc))
 		}
 		return int16(rc), nil
@@ -293,7 +294,7 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_exeprgname rc=%d", int16(rc))
 		}
 		return int16(rc), nil
@@ -311,7 +312,6 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 	const (
 		maxBusyRetries = 10
 		busyRetryDelay = 50 * time.Millisecond
-		EW_HANDLE      = -8
 	)
 
 	err = a.CallWithReconnect(func(handle uint16) (int16, error) {
@@ -323,14 +323,14 @@ func (a *FocasAdapter) ReadProgram() (*models.ProgramInfo, error) {
 
 			rc = C.go_cnc_rdexecprog(C.ushort(handle), &length, &blknum, (*C.char)(unsafe.Pointer(&dataBuf[0])))
 
-			if rc == C.EW_OK {
+			if int16(rc) == EW_OK {
 				fullBlock := trimNull(string(dataBuf[:length]))
 				lines := strings.Split(fullBlock, "\n")
 				progInfo.CurrentGCode = lines[0]
 				return int16(rc), nil
 			}
 
-			if rc == EW_HANDLE {
+			if int16(rc) == EW_HANDLE {
 				time.Sleep(busyRetryDelay)
 				continue // Контроллер занят, повторяем
 			}

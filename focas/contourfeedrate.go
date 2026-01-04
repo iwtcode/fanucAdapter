@@ -13,6 +13,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"unsafe"
+
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 )
 
 // ReadContourFeedRate считывает фактическую скорость подачи по контуру (F).
@@ -27,7 +29,7 @@ func (a *FocasAdapter) ReadContourFeedRate() (int32, error) {
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_actf(C.ushort(handle), (*C.ODBACT)(unsafe.Pointer(&buffer[0])))
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_actf failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil

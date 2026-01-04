@@ -15,6 +15,8 @@ import (
 	"math"
 	"strings"
 	"unsafe"
+
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 )
 
 func trimNull(s string) string {
@@ -34,7 +36,7 @@ func (a *FocasAdapter) readDiagnosisInternal(diagNo int16, axisNo int16, length 
 			C.short(length),
 			(*C.ODBDGN)(unsafe.Pointer(&buffer[0])),
 		)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_diagnoss for diagNo %d failed: rc=%d", diagNo, int16(rc))
 		}
 		return int16(rc), nil

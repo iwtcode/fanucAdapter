@@ -13,6 +13,8 @@ import (
 	"encoding/binary"
 	"fmt"
 	"unsafe"
+
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 )
 
 // ReadJogOverride считывает процент коррекции скорости перемещения в режиме JOG.
@@ -34,7 +36,7 @@ func (a *FocasAdapter) ReadJogOverride() (int32, error) {
 		a.logger.Debugf("[ReadFeedOverride] Вызов go_cnc_rdtofs. Код возврата (rc): %d", rc)
 		a.logger.Debugf("[ReadFeedOverride] Сырой буфер ответа (hex): %x", buffer)
 
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdtofs for JOG override failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil

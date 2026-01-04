@@ -16,6 +16,7 @@ import (
 	"time"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/focas/model"
 )
 
@@ -31,7 +32,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc := C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_exeprgname failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil
@@ -58,13 +59,13 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		if programNumberToUpload > 0 {
 			logger.Infof("Starting program upload by number for program O%d (%s)", programNumberToUpload, progName)
 			rc = C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
-			if rc != C.EW_OK {
+			if int16(rc) != EW_OK {
 				return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progName, programNumberToUpload, int16(rc))
 			}
 		} else {
 			var pathNo, maxPathNo C.short
 			rcPath := C.go_cnc_getpath(C.ushort(handle), &pathNo, &maxPathNo)
-			if rcPath != C.EW_OK {
+			if int16(rcPath) != EW_OK {
 				return int16(rcPath), fmt.Errorf("cnc_getpath failed: rc=%d", int16(rcPath))
 			}
 
@@ -75,7 +76,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			defer C.free(unsafe.Pointer(cFilePath))
 
 			rc = C.go_cnc_upstart4(C.ushort(handle), 0, cFilePath)
-			if rc != C.EW_OK {
+			if int16(rc) != EW_OK {
 				return int16(rc), fmt.Errorf("cnc_upstart4 for program '%s' failed: rc=%d", filePath, int16(rc))
 			}
 		}
@@ -87,11 +88,6 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		var uploadErr error
 		var lastRc C.short
 
-		const (
-			EW_RESET  = -2 // Reset or stop request
-			EW_HANDLE = -8 // Handle number error
-		)
-
 		iteration := 0
 		for {
 			var buffer C.ODBUP
@@ -102,7 +98,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			logger.Debugf("Upload iteration %d: rc=%d, length=%d", iteration, rcUpload, length)
 			iteration++
 
-			isDataRead := rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER
+			isDataRead := int16(rcUpload) == EW_OK || int16(rcUpload) == EW_BUFFER
 
 			if isDataRead && length > 0 {
 				goBytes := C.GoBytes(unsafe.Pointer(&buffer.data[0]), C.int(length))
@@ -110,25 +106,25 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			}
 
 			// 1. Условия успешного завершения
-			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_RESET {
+			if (int16(rcUpload) == EW_OK && length == 0) || int16(rcUpload) == EW_RESET {
 				logger.Infof("Upload finished successfully with code: %d", rcUpload)
 				break
 			}
 
 			// 2. Условие для повторной попытки
-			if rcUpload == EW_HANDLE {
+			if int16(rcUpload) == EW_HANDLE {
 				logger.Warnf("CNC is busy (rc=%d). Retrying in 50ms...", rcUpload)
 				time.Sleep(50 * time.Millisecond)
 				continue
 			}
 
 			// 3. Условие продолжения чтения (буфер был полон, есть еще данные)
-			if rcUpload == C.EW_BUFFER {
+			if int16(rcUpload) == EW_BUFFER {
 				continue
 			}
 
 			// 4. Условие неустранимой ошибки (все остальные случаи)
-			if rcUpload != C.EW_OK {
+			if int16(rcUpload) != EW_OK {
 				logger.Errorf("Exiting upload loop due to unrecoverable error. rc=%d", rcUpload)
 				uploadErr = fmt.Errorf("cnc_upload failed with rc=%d", int16(rcUpload))
 				break
@@ -150,7 +146,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 		logger.Debugf("Final processed content size: %d bytes", len(finalContent))
 
-		return C.EW_OK, nil // Вся последовательность успешна
+		return int16(EW_OK), nil // Вся последовательность успешна
 	})
 
 	if err != nil {

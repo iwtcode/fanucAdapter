@@ -15,6 +15,7 @@ import (
 	"math"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/models"
 )
 
@@ -36,7 +37,7 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 			0, // ИСПРАВЛЕНО: Тип 0 для фактической скорости подачи (был 2)
 			(*C.ODBSPEED)(unsafe.Pointer(&speedBuffer[0])),
 		)
-		if rcSpeed != C.EW_OK {
+		if int16(rcSpeed) != EW_OK {
 			return int16(rcSpeed), fmt.Errorf("cnc_rdspeed failed: rc=%d", int16(rcSpeed))
 		}
 		return int16(rcSpeed), nil
@@ -76,7 +77,7 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 			C.short(length),
 			(*C.IODBPSD)(unsafe.Pointer(&paramBuffer[0])),
 		)
-		if rcParam != C.EW_OK {
+		if int16(rcParam) != EW_OK {
 			return int16(rcParam), fmt.Errorf("cnc_rdparam для коррекции подачи (параметр %d) завершился с ошибкой: rc=%d", paramNum, int16(rcParam))
 		}
 		return int16(rcParam), nil

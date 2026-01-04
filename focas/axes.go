@@ -15,6 +15,7 @@ import (
 	"math"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/models"
 )
 
@@ -36,7 +37,7 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	// 1. Читаем позиции (стандартный метод)
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc = C.go_cnc_rdposition(C.ushort(handle), -1, &axesToRead, (*C.ODBPOS)(unsafe.Pointer(&buffer[0])))
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdposition failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil

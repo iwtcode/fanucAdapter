@@ -16,6 +16,7 @@ import (
 	"strings"
 	"unsafe"
 
+	. "github.com/iwtcode/fanucAdapter/focas/errcode"
 	"github.com/iwtcode/fanucAdapter/focas/interpreter"
 	"github.com/iwtcode/fanucAdapter/models"
 )
@@ -41,7 +42,7 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 			(*C.ODBALMMSG)(unsafe.Pointer(&buffer[0])),
 		)
 		a.logger.Debugf("[ReadAlarms] C.go_cnc_rdalmmsg вернул: rc=%d, numAlarms=%d", rc, numAlarms)
-		if rc != C.EW_OK {
+		if int16(rc) != EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdalmmsg failed: rc=%d", int16(rc))
 		}
 		return int16(rc), nil
