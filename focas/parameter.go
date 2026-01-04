@@ -3,7 +3,6 @@ package focas
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"time"
 	"unsafe"
 
@@ -71,7 +70,7 @@ func (a *FocasAdapter) ReadParameterInfo() (*models.ParameterInfo, error) {
 	})
 
 	if err != nil {
-		log.Printf("Error reading parameters: %v", err)
+		a.logger.Errorf("Error reading parameters: %v", err)
 		return info, err
 	}
 

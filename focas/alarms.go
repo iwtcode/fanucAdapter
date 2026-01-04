@@ -12,7 +12,6 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -31,17 +30,17 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 	numAlarms := C.short(maxAlarms)
 	var rc C.short
 
-	log.Printf("[ReadAlarms] Попытка чтения до %d ошибок (структура ODBALMMSG2)...", maxAlarms)
+	a.logger.Debugf("[ReadAlarms] Попытка чтения до %d ошибок (структура ODBALMMSG2)...", maxAlarms)
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
-		log.Printf("[ReadAlarms] Вызов C.go_cnc_rdalmmsg с хендлом %d", handle)
+		a.logger.Debugf("[ReadAlarms] Вызов C.go_cnc_rdalmmsg с хендлом %d", handle)
 		rc = C.go_cnc_rdalmmsg(
 			C.ushort(handle),
 			-1, // Читать все типы ошибок
 			&numAlarms,
 			(*C.ODBALMMSG)(unsafe.Pointer(&buffer[0])),
 		)
-		log.Printf("[ReadAlarms] C.go_cnc_rdalmmsg вернул: rc=%d, numAlarms=%d", rc, numAlarms)
+		a.logger.Debugf("[ReadAlarms] C.go_cnc_rdalmmsg вернул: rc=%d, numAlarms=%d", rc, numAlarms)
 		if rc != C.EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdalmmsg failed: rc=%d", int16(rc))
 		}
@@ -49,21 +48,21 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 	})
 
 	if err != nil {
-		log.Printf("[ReadAlarms] Ошибка во время CallWithReconnect: %v", err)
+		a.logger.Errorf("[ReadAlarms] Ошибка во время CallWithReconnect: %v", err)
 		return nil, err
 	}
 
 	if numAlarms <= 0 {
-		log.Println("[ReadAlarms] На станке не найдено активных ошибок.")
+		a.logger.Debug("[ReadAlarms] На станке не найдено активных ошибок.")
 		return []models.AlarmDetail{}, nil
 	}
 
-	log.Printf("[ReadAlarms] Найдено ошибок: %d. Начинаю парсинг...", numAlarms)
+	a.logger.Debugf("[ReadAlarms] Найдено ошибок: %d. Начинаю парсинг...", numAlarms)
 	alarms := make([]models.AlarmDetail, 0, numAlarms)
 	for i := 0; i < int(numAlarms); i++ {
 		offset := i * alarmDataSize
 		alarmBytes := buffer[offset : offset+alarmDataSize]
-		log.Printf("[ReadAlarms] Обработка ошибки #%d, сырые байты: %x", i+1, alarmBytes)
+		a.logger.Debugf("[ReadAlarms] Обработка ошибки #%d, сырые байты: %x", i+1, alarmBytes)
 
 		// Номер ошибки (long, 4 байта)
 		alarmNumber := int32(binary.LittleEndian.Uint32(alarmBytes[0:4]))
@@ -74,7 +73,7 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 		// Длина сообщения (short, 2 байта, смещение 10)
 		msgLen := int(binary.LittleEndian.Uint16(alarmBytes[10:12]))
 
-		log.Printf("[ReadAlarms] Распарсенные детали: Номер=%d, Тип=%d, ДлинаСообщения=%d", alarmNumber, alarmType, msgLen)
+		a.logger.Debugf("[ReadAlarms] Распарсенные детали: Номер=%d, Тип=%d, ДлинаСообщения=%d", alarmNumber, alarmType, msgLen)
 
 		// Сообщение (смещение 12, длина msgLen)
 		var message string
@@ -87,10 +86,10 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 			message = strings.TrimSpace(message)
 		}
 
-		log.Printf("[ReadAlarms] Распарсенное сообщение: '%s'", message)
+		a.logger.Debugf("[ReadAlarms] Распарсенное сообщение: '%s'", message)
 
 		if message == "" {
-			log.Printf("[ReadAlarms] Пропуск ошибки #%d, так как сообщение пустое.", i+1)
+			a.logger.Debugf("[ReadAlarms] Пропуск ошибки #%d, так как сообщение пустое.", i+1)
 			continue
 		}
 
@@ -102,6 +101,6 @@ func (a *FocasAdapter) ReadAlarms() ([]models.AlarmDetail, error) {
 		alarms = append(alarms, alarmDetail)
 	}
 
-	log.Printf("[ReadAlarms] Парсинг завершен. Возвращаю %d ошибок.", len(alarms))
+	a.logger.Debugf("[ReadAlarms] Парсинг завершен. Возвращаю %d ошибок.", len(alarms))
 	return alarms, nil
 }

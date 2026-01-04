@@ -12,7 +12,6 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
 	"unsafe"
 
@@ -60,21 +59,21 @@ func (a *FocasAdapter) ReadAxisData() ([]models.AxisInfo, error) {
 	// Diag 301: Servo Load (Real)
 	diag301Vals, err := a.ReadDiagnosisRealAllAxes(301, maxAxes)
 	if err != nil {
-		log.Printf("Warning: Batch read diag 301 failed: %v", err)
+		a.logger.Warnf("Warning: Batch read diag 301 failed: %v", err)
 		diag301Vals = make([]float64, maxAxes)
 	}
 
 	// Diag 308: Servo Temperature (Byte)
 	diag308Vals, err := a.ReadDiagnosisByteAllAxes(308, maxAxes)
 	if err != nil {
-		log.Printf("Warning: Batch read diag 308 failed: %v", err)
+		a.logger.Warnf("Warning: Batch read diag 308 failed: %v", err)
 		diag308Vals = make([]int32, maxAxes)
 	}
 
 	// Diag 309: Coder Temperature (Byte)
 	diag309Vals, err := a.ReadDiagnosisByteAllAxes(309, maxAxes)
 	if err != nil {
-		log.Printf("Warning: Batch read diag 309 failed: %v", err)
+		a.logger.Warnf("Warning: Batch read diag 309 failed: %v", err)
 		diag309Vals = make([]int32, maxAxes)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/iwtcode/fanucAdapter/models"
+	"github.com/sirupsen/logrus"
 )
 
 // FanucModel представляет конкретную серию моделей ЧПУ.
@@ -54,4 +55,5 @@ type ProgramReader interface {
 type FocasCaller interface {
 	ReadProgram() (*models.ProgramInfo, error)
 	CallWithReconnect(f func(handle uint16) (int16, error)) error
+	Logger() logrus.FieldLogger
 }

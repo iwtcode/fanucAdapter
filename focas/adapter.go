@@ -13,7 +13,6 @@ import "C"
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -24,6 +23,7 @@ import (
 
 	"github.com/iwtcode/fanucAdapter/focas/model"
 	"github.com/iwtcode/fanucAdapter/models"
+	"github.com/sirupsen/logrus"
 )
 
 // libLock обеспечивает глобальную синхронизацию для всех вызовов к libfwlib32.
@@ -42,13 +42,14 @@ type FocasAdapter struct {
 	sysInfo       *models.SystemInfo
 	interpreter   model.Interpreter   // Интерфейс для интерпретации состояния
 	programReader model.ProgramReader // Интерфейс для чтения программы
+	logger        logrus.FieldLogger  // Локальный логгер
 }
 
 // Убедимся, что FocasAdapter удовлетворяет интерфейсу FocasCaller.
 var _ model.FocasCaller = (*FocasAdapter)(nil)
 
 // NewFocasAdapter создает новый экземпляр FocasAdapter и устанавливает соединение.
-func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string) (*FocasAdapter, error) {
+func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string, logger logrus.FieldLogger) (*FocasAdapter, error) {
 	handle, err := Connect(ip, port, timeoutMs)
 	if err != nil {
 		return nil, fmt.Errorf("initial connection failed: %w", err)
@@ -64,6 +65,7 @@ func NewFocasAdapter(ip string, port uint16, timeoutMs int32, modelSeries string
 		handle:        handle,
 		interpreter:   interpreter,
 		programReader: programReader,
+		logger:        logger,
 	}
 
 	sysInfo, err := adapter.ReadSystemInfo()
@@ -81,13 +83,18 @@ func Startup(mode uint16, logPath string) error {
 	libLock.Lock()
 	defer libLock.Unlock()
 
-	dir := filepath.Dir(logPath)
-	if dir != "" && dir != "." {
-		_ = os.MkdirAll(dir, 0o755)
+	var cpath *C.char
+	if logPath != "" {
+		dir := filepath.Dir(logPath)
+		if dir != "" && dir != "." {
+			_ = os.MkdirAll(dir, 0o755)
+		}
+		cpath = C.CString(logPath)
+		defer C.free(unsafe.Pointer(cpath))
+	} else {
+		cpath = C.CString("")
+		defer C.free(unsafe.Pointer(cpath))
 	}
-
-	cpath := C.CString(logPath)
-	defer C.free(unsafe.Pointer(cpath))
 
 	rc := C.go_cnc_startupprocess(C.ushort(mode), cpath)
 	if rc != C.EW_OK {
@@ -123,6 +130,11 @@ func Disconnect(handle uint16) {
 	C.go_cnc_freelibhndl(C.ushort(handle))
 }
 
+// Logger возвращает текущий логгер адаптера (реализация FocasCaller).
+func (a *FocasAdapter) Logger() logrus.FieldLogger {
+	return a.logger
+}
+
 // Reconnect пытается восстановить соединение.
 func (a *FocasAdapter) Reconnect() error {
 	a.mu.Lock()
@@ -142,7 +154,7 @@ func (a *FocasAdapter) Reconnect() error {
 	}
 
 	a.handle = newHandle
-	log.Println("Successfully reconnected to FOCAS.")
+	a.logger.Infof("Successfully reconnected to FOCAS at %s:%d", a.ip, a.port)
 	return nil
 }
 
@@ -167,10 +179,10 @@ func (a *FocasAdapter) CallWithReconnect(f func(handle uint16) (int16, error)) e
 		}
 
 		if rc == C.EW_HANDLE || rc == C.EW_SOCKET {
-			log.Printf("Connection error detected (rc=%d). Attempting to Reconnect...\n", rc)
+			a.logger.Warnf("Connection error detected (rc=%d). Attempting to Reconnect...", rc)
 
 			if reconnErr := a.Reconnect(); reconnErr != nil {
-				log.Printf("Reconnect failed: %v. Retrying in 1 second...\n", reconnErr)
+				a.logger.Errorf("Reconnect failed: %v. Retrying in 500ms...", reconnErr)
 				time.Sleep(500 * time.Millisecond)
 				continue
 			}
@@ -259,7 +271,7 @@ func (a *FocasAdapter) ReadMachineState() (*models.UnifiedMachineData, error) {
 	// Считываем и добавляем информацию об ошибках
 	alarms, err := a.ReadAlarms()
 	if err != nil {
-		log.Printf("Warning: could not read alarms: %v\n", err)
+		a.logger.Warnf("Warning: could not read alarms: %v", err)
 	} else {
 		machineData.Alarms = alarms
 	}

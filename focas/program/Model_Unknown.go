@@ -11,7 +11,6 @@ package program
 import "C"
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +27,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 	nameBuf := make([]byte, 64)
 	var onum C.long
 	var progName string
+	logger := a.Logger()
 
 	err := a.CallWithReconnect(func(handle uint16) (int16, error) {
 		rc := C.go_cnc_exeprgname(C.ushort(handle), (*C.char)(unsafe.Pointer(&nameBuf[0])), C.int(len(nameBuf)), &onum)
@@ -56,7 +56,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 		var rc C.short
 
 		if programNumberToUpload > 0 {
-			log.Printf("Starting program upload by number for program O%d (%s)", programNumberToUpload, progName)
+			logger.Infof("Starting program upload by number for program O%d (%s)", programNumberToUpload, progName)
 			rc = C.go_cnc_upstart(C.ushort(handle), C.short(programNumberToUpload))
 			if rc != C.EW_OK {
 				return int16(rc), fmt.Errorf("cnc_upstart for program '%s' (number %d) failed: rc=%d", progName, programNumberToUpload, int16(rc))
@@ -69,7 +69,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			}
 
 			filePath := fmt.Sprintf("//CNC_MEM/USER/PATH%d/%s", pathNo, progName)
-			log.Printf("Starting program upload by path for program '%s'", filePath)
+			logger.Infof("Starting program upload by path for program '%s'", filePath)
 
 			cFilePath := C.CString(filePath)
 			defer C.free(unsafe.Pointer(cFilePath))
@@ -80,7 +80,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			}
 		}
 
-		log.Printf("Program upload started successfully.")
+		logger.Info("Program upload started successfully.")
 		defer C.go_cnc_upend(C.ushort(handle))
 
 		var sb strings.Builder
@@ -99,7 +99,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 			rcUpload := C.go_cnc_upload(C.ushort(handle), &buffer, &length)
 			lastRc = rcUpload
 
-			log.Printf("Upload iteration %d: rc=%d, length=%d", iteration, rcUpload, length)
+			logger.Debugf("Upload iteration %d: rc=%d, length=%d", iteration, rcUpload, length)
 			iteration++
 
 			isDataRead := rcUpload == C.EW_OK || rcUpload == C.EW_BUFFER
@@ -111,13 +111,13 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 			// 1. Условия успешного завершения
 			if (rcUpload == C.EW_OK && length == 0) || rcUpload == EW_RESET {
-				log.Printf("Upload finished successfully with code: %d", rcUpload)
+				logger.Infof("Upload finished successfully with code: %d", rcUpload)
 				break
 			}
 
 			// 2. Условие для повторной попытки
 			if rcUpload == EW_HANDLE {
-				log.Printf("CNC is busy (rc=%d). Retrying in 50ms...", rcUpload)
+				logger.Warnf("CNC is busy (rc=%d). Retrying in 50ms...", rcUpload)
 				time.Sleep(50 * time.Millisecond)
 				continue
 			}
@@ -129,7 +129,7 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 			// 4. Условие неустранимой ошибки (все остальные случаи)
 			if rcUpload != C.EW_OK {
-				log.Printf("Exiting upload loop due to unrecoverable error. rc=%d", rcUpload)
+				logger.Errorf("Exiting upload loop due to unrecoverable error. rc=%d", rcUpload)
 				uploadErr = fmt.Errorf("cnc_upload failed with rc=%d", int16(rcUpload))
 				break
 			}
@@ -142,13 +142,13 @@ func (pr *ModelUnknownProgramReader) GetControlProgram(a model.FocasCaller) (str
 
 		// Обработка и очистка происходят только после успешной загрузки
 		rawContent := strings.ReplaceAll(sb.String(), "\x00", "")
-		log.Printf("Total raw content size after loop: %d bytes", len(rawContent))
+		logger.Debugf("Total raw content size after loop: %d bytes", len(rawContent))
 
 		// Надежно очищаем и обрамляем программу символами '%'
 		trimmedContent := strings.Trim(rawContent, " \t\n\r%")
 		finalContent = "%\n" + trimmedContent + "\n%"
 
-		log.Printf("Final processed content size: %d bytes", len(finalContent))
+		logger.Debugf("Final processed content size: %d bytes", len(finalContent))
 
 		return C.EW_OK, nil // Вся последовательность успешна
 	})

@@ -2,7 +2,6 @@ package focas
 
 import (
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/iwtcode/fanucAdapter/models"
@@ -49,16 +48,14 @@ func (a *FocasAdapter) AggregateAllData() (*models.AggregatedData, error) {
 	// 7. Получение данных о коррекции JOG
 	jogOverride, err := a.ReadJogOverride()
 	if err != nil {
-		log.Printf("Warning: failed to read jog override: %v", err)
+		a.logger.Warnf("Warning: failed to read jog override: %v", err)
 		jogOverride = 0 // Устанавливаем значение по умолчанию в случае ошибки
 	}
 
 	// 8. Получение параметров (счетчики, время)
 	paramInfo, err := a.ReadParameterInfo()
 	if err != nil {
-		// Ошибки уже логируются внутри ReadParameterInfo, поэтому здесь просто продолжаем
-		log.Printf("Warning: one or more parameters could not be read: %v", err)
-		// Инициализируем пустой структурой, чтобы избежать nil pointer dereference
+		a.logger.Warnf("Warning: one or more parameters could not be read: %v", err)
 		paramInfo = &models.ParameterInfo{}
 	}
 

@@ -10,20 +10,15 @@ type Config struct {
 	IP          string
 	Port        uint16
 	TimeoutMs   int32
-	LogPath     string
 	ModelSeries string
+	LogLevel    string
 }
 
-// Load загружает конфигурацию из переменных окружения или устанавливает значения по умолчанию
+// Load загружает конфигурацию из переменных окружения
 func Load() *Config {
-	logPath := os.Getenv("FANUC_LOG_PATH")
-	if logPath == "" {
-		logPath = "./fanuc.log"
-	}
-
 	ip := os.Getenv("FANUC_IP")
 	if ip == "" {
-		ip = "192.168.0.3"
+		ip = "10.0.0.1"
 	}
 
 	portStr := os.Getenv("FANUC_PORT")
@@ -40,11 +35,16 @@ func Load() *Config {
 
 	modelSeries := os.Getenv("FANUC_MODEL_SERIES")
 
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+
 	return &Config{
 		IP:          ip,
 		Port:        uint16(port),
 		TimeoutMs:   int32(timeout),
-		LogPath:     logPath,
 		ModelSeries: modelSeries,
+		LogLevel:    logLevel,
 	}
 }

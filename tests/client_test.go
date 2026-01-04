@@ -2,30 +2,41 @@ package tests
 
 import (
 	"encoding/json"
-	"log"
 	"os"
 	"testing"
 
 	fanuc "github.com/iwtcode/fanucAdapter"
 	"github.com/joho/godotenv"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
 )
+
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{
+		ForceColors:     true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05",
+	})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.DebugLevel)
+}
 
 func setupTest(t *testing.T) *fanuc.Client {
 	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Printf("Warning: Could not load .env file from ../.env. Using default values or environment variables: %v", err)
+		logrus.Warnf("Warning: Could not load .env file from ../.env. Using default values or environment variables: %v", err)
 	}
 
 	cfg := fanuc.Load()
-	log.Printf("Конфигурация загружена: IP=%s, Port=%d", cfg.IP, cfg.Port)
+	logrus.Infof("Конфигурация загружена: IP=%s, Port=%d, LogLevel=%s", cfg.IP, cfg.Port, cfg.LogLevel)
 	require.NotNil(t, cfg, "Конфигурация не была загружена")
 
-	log.Printf("Подключение к %s:%d ...", cfg.IP, cfg.Port)
+	logrus.Infof("Подключение к %s:%d ...", cfg.IP, cfg.Port)
+
 	c, err := fanuc.New(cfg)
 	require.NoError(t, err, "Не удалось создать FOCAS клиент")
 	require.NotNil(t, c, "Клиент не должен быть nil")
-	log.Println("Успешно подключено!")
+	logrus.Info("Успешно подключено!")
 
 	return c
 }
@@ -34,7 +45,7 @@ func logAsJSON(t *testing.T, name string, data interface{}) {
 	t.Helper()
 	jsonData, err := json.MarshalIndent(data, "", "  ")
 	require.NoError(t, err, "Ошибка маршалинга JSON для %s", name)
-	log.Printf("--- %s ---\n%s", name, string(jsonData))
+	logrus.Infof("--- %s ---\n%s", name, string(jsonData))
 }
 
 func TestReadSystemInfo(t *testing.T) {
@@ -52,7 +63,7 @@ func TestReadProgramInfo(t *testing.T) {
 
 	progInfo, err := c.GetProgramInfo()
 	if err != nil {
-		log.Fatalf("Ошибка получения информации о программе: %v", err)
+		logrus.Fatalf("Ошибка получения информации о программе: %v", err)
 	}
 
 	logAsJSON(t, "ProgramInfo", progInfo)
@@ -154,14 +165,14 @@ func TestGetControlProgram(t *testing.T) {
 
 	gcode, err := c.GetControlProgram()
 	if err != nil {
-		log.Fatalf("Ошибка при получении содержимого программы: %v", err)
+		logrus.Fatalf("Ошибка при получении содержимого программы: %v", err)
 	}
 
 	filePath := "g_code.log"
 	err = os.WriteFile(filePath, []byte(gcode), 0644)
 	require.NoError(t, err, "Не удалось записать G-код в файл %s", filePath)
 
-	log.Printf("G-код программы успешно сохранен в %s", filePath)
+	logrus.Infof("G-код программы успешно сохранен в %s", filePath)
 }
 
 func TestGetCurrentData(t *testing.T) {

@@ -12,7 +12,6 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
 	"unsafe"
 
@@ -62,7 +61,7 @@ func (a *FocasAdapter) ReadSpindleData() ([]models.SpindleInfo, error) {
 
 	diag411Vals, errDiag := a.ReadDiagnosisWordAllAxes(411, maxAxes)
 	if errDiag != nil {
-		log.Printf("Warning: Batch read diag 411 failed: %v", errDiag)
+		a.logger.Warnf("Warning: Batch read diag 411 failed: %v", errDiag)
 		diag411Vals = make([]int32, maxAxes)
 	}
 

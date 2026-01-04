@@ -2,10 +2,13 @@ package fanuc
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"sync"
 
 	"github.com/iwtcode/fanucAdapter/focas"
 	"github.com/iwtcode/fanucAdapter/models"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -17,23 +20,42 @@ var (
 type Client struct {
 	adapter *focas.FocasAdapter
 	config  *Config
+	logger  *logrus.Logger
 }
 
 // New создает и возвращает новый экземпляр клиента.
-// Эта функция инициализирует FOCAS (только один раз) и устанавливает соединение.
+// Эта функция инициализирует FOCAS и устанавливает соединение.
 func New(cfg *Config) (*Client, error) {
-	// Инициализация FOCAS должна происходить только один раз за все время работы приложения.
+	logger := logrus.New()
+
+	if cfg.LogLevel == "off" || cfg.LogLevel == "none" {
+		logger.SetOutput(io.Discard)
+	} else {
+		level, err := logrus.ParseLevel(cfg.LogLevel)
+		if err != nil {
+			level = logrus.InfoLevel
+		}
+		logger.SetLevel(level)
+		logger.SetOutput(os.Stdout)
+	}
+
+	// Настраиваем форматтер с понятным форматом времени
+	logger.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		ForceColors:     true,
+		TimestampFormat: "2006-01-02 15:04:05",
+	})
+
 	startupOnce.Do(func() {
-		// Используем режим 3 для логирования в файл
-		startupErr = focas.Startup(3, cfg.LogPath)
+		startupErr = focas.Startup(0, "")
 	})
 
 	if startupErr != nil {
 		return nil, fmt.Errorf("FOCAS startup failed: %w", startupErr)
 	}
 
-	// Передаем указанную серию модели в адаптер
-	adapter, err := focas.NewFocasAdapter(cfg.IP, cfg.Port, cfg.TimeoutMs, cfg.ModelSeries)
+	// Передаем указанную серию модели в адаптер и локальный логгер
+	adapter, err := focas.NewFocasAdapter(cfg.IP, cfg.Port, cfg.TimeoutMs, cfg.ModelSeries, logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create focas adapter: %w", err)
 	}
@@ -41,6 +63,7 @@ func New(cfg *Config) (*Client, error) {
 	return &Client{
 		adapter: adapter,
 		config:  cfg,
+		logger:  logger,
 	}, nil
 }
 
@@ -49,6 +72,11 @@ func (c *Client) Close() {
 	if c.adapter != nil {
 		c.adapter.Close()
 	}
+}
+
+// GetLogger возвращает используемый логгер.
+func (c *Client) GetLogger() *logrus.Logger {
+	return c.logger
 }
 
 // GetSystemInfo возвращает системную информацию о станке.

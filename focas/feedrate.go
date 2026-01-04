@@ -12,7 +12,6 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"math"
 	"unsafe"
 
@@ -22,7 +21,7 @@ import (
 // ReadFeedData считывает фактическую скорость подачи и процент коррекции.
 // Реализация основана на C# коде, считывающем данные с помощью cnc_rdspeed и cnc_rdparam.
 func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
-	log.Println("[ReadFeedData] Начато чтение данных о скорости подачи и коррекции.")
+	a.logger.Debug("[ReadFeedData] Начато чтение данных о скорости подачи и коррекции.")
 	feedInfo := &models.FeedInfo{}
 	var finalErr error
 
@@ -44,7 +43,7 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 	})
 
 	if errSpeed != nil {
-		log.Printf("[ReadFeedData] Ошибка при чтении фактической скорости подачи: %v.", errSpeed)
+		a.logger.Errorf("[ReadFeedData] Ошибка при чтении фактической скорости подачи: %v.", errSpeed)
 		finalErr = errSpeed // Сохраняем первую ошибку
 	} else {
 		// Парсинг буфера ODBSPEED. `actf` - первый член структуры.
@@ -59,7 +58,7 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 		}
 
 		feedInfo.ActualFeedRate = int32(actualFeedRate)
-		log.Printf("[ReadFeedData] Успешно прочитана фактическая скорость подачи. Значение: %d (Сырое: %d, Десятичные: %d)", feedInfo.ActualFeedRate, rateVal, rateDec)
+		a.logger.Debugf("[ReadFeedData] Успешно прочитана фактическая скорость подачи. Значение: %d (Сырое: %d, Десятичные: %d)", feedInfo.ActualFeedRate, rateVal, rateDec)
 	}
 
 	// 2. Чтение коррекции подачи с помощью cnc_rdparam
@@ -84,7 +83,7 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 	})
 
 	if errParam != nil {
-		log.Printf("[ReadFeedData] Ошибка при чтении коррекции подачи: %v.", errParam)
+		a.logger.Errorf("[ReadFeedData] Ошибка при чтении коррекции подачи: %v.", errParam)
 		if finalErr == nil { // Не перезаписываем первую ошибку
 			finalErr = errParam
 		}
@@ -93,9 +92,9 @@ func (a *FocasAdapter) ReadFeedData() (*models.FeedInfo, error) {
 		// Данные начинаются со смещения 4. Нас интересует значение типа short (idata).
 		overrideValue := int16(binary.LittleEndian.Uint16(paramBuffer[4:6]))
 		feedInfo.FeedOverride = overrideValue
-		log.Printf("[ReadFeedData] Успешно прочитана коррекция подачи. Значение: %d", feedInfo.FeedOverride)
+		a.logger.Debugf("[ReadFeedData] Успешно прочитана коррекция подачи. Значение: %d", feedInfo.FeedOverride)
 	}
 
-	log.Printf("[ReadFeedData] Чтение завершено. Результат: %+v, Ошибка: %v", feedInfo, finalErr)
+	a.logger.Debugf("[ReadFeedData] Чтение завершено. Результат: %+v, Ошибка: %v", feedInfo, finalErr)
 	return feedInfo, finalErr
 }

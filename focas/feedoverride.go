@@ -12,14 +12,13 @@ import "C"
 import (
 	"encoding/binary"
 	"fmt"
-	"log"
 	"unsafe"
 )
 
 // ReadFeedOverride считывает процент коррекции подачи (F%).
 // Используется FOCAS функция cnc_rdtofs.
 func (a *FocasAdapter) ReadFeedOverride() (int32, error) {
-	log.Println("[ReadFeedOverride] Начато чтение коррекции подачи с помощью cnc_rdtofs.")
+	a.logger.Debug("[ReadFeedOverride] Начато чтение коррекции подачи с помощью cnc_rdtofs.")
 
 	// Размер структуры ODBTOFS: datano(2) + type(2) + data(4) = 8 байт
 	const dataLength = 8
@@ -35,8 +34,8 @@ func (a *FocasAdapter) ReadFeedOverride() (int32, error) {
 			(*C.ODBTOFS)(unsafe.Pointer(&buffer[0])),
 		)
 
-		log.Printf("[ReadFeedOverride] Вызов go_cnc_rdtofs. Код возврата (rc): %d", rc)
-		log.Printf("[ReadFeedOverride] Сырой буфер ответа (hex): %x", buffer)
+		a.logger.Debugf("[ReadFeedOverride] Вызов go_cnc_rdtofs. Код возврата (rc): %d", rc)
+		a.logger.Debugf("[ReadFeedOverride] Сырой буфер ответа (hex): %x", buffer)
 
 		if rc != C.EW_OK {
 			return int16(rc), fmt.Errorf("cnc_rdtofs failed with error code: %d", int16(rc))
@@ -45,7 +44,7 @@ func (a *FocasAdapter) ReadFeedOverride() (int32, error) {
 	})
 
 	if err != nil {
-		log.Printf("[ReadFeedOverride] Ошибка после вызова CallWithReconnect: %v", err)
+		a.logger.Errorf("[ReadFeedOverride] Ошибка после вызова CallWithReconnect: %v", err)
 		return 0, err
 	}
 
@@ -53,6 +52,6 @@ func (a *FocasAdapter) ReadFeedOverride() (int32, error) {
 	// которое начинается со смещения 4 байта в структуре ODBTOFS.
 	overrideValue := int32(binary.LittleEndian.Uint32(buffer[4:8]))
 
-	log.Printf("[ReadFeedOverride] Успешно прочитана коррекция подачи. Распарсенное значение: %d", overrideValue)
+	a.logger.Debugf("[ReadFeedOverride] Успешно прочитана коррекция подачи. Распарсенное значение: %d", overrideValue)
 	return overrideValue, nil
 }
