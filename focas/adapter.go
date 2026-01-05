@@ -13,6 +13,7 @@ import "C"
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -106,6 +107,13 @@ func Startup(mode uint16, logPath string) error {
 
 // Connect подключается к станку и возвращает хендл
 func Connect(ip string, port uint16, timeoutMs int32) (uint16, error) {
+	target := net.JoinHostPort(ip, strconv.Itoa(int(port)))
+	conn, err := net.DialTimeout("tcp", target, 2*time.Second)
+	if err != nil {
+		return 0, fmt.Errorf("network pre-check failed (machine unreachable): %w", err)
+	}
+	conn.Close()
+
 	libLock.Lock()
 	defer libLock.Unlock()
 
